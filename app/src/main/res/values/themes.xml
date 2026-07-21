@@ -1,0 +1,5 @@
+<resources>
+    <style name="Theme.ElSahra" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Material 3 already extends AppCompat, but you need NoActionBar -->
+    </style>
+</resources>
