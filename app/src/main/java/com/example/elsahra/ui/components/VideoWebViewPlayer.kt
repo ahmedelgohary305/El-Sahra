@@ -12,6 +12,7 @@ import android.view.WindowManager
 import android.webkit.CookieManager
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
@@ -40,16 +41,17 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import java.io.ByteArrayInputStream
 
-private const val VID_SRC_HOST = "vidsrc.sbs"
-private const val ARABIC_SUBTITLE_LANGUAGE = "ar"
-private const val PLAYER_ACCENT_COLOR = "e50914"
+private const val VIDSRC_HOST = "vidsrc.sbs"
 
 /**
- * Full-screen VidSrc player for TMDB movies and TV episodes.
+ * Mobile-optimized VidSrc SBS player for TMDB movies and TV episodes.
  *
- * VidSrc uses ISO 639-1 language codes; `sub=ar` asks it to preselect Arabic
- * subtitles whenever an Arabic track is available for the selected title.
+ * This component embeds VidSrc SBS (vidsrc.sbs) directly, using its native
+ * mobile-responsive player (no desktop UA spoofing needed), with query
+ * parameters tuned for mobile playback plus network + navigation level
+ * ad-blocking.
  */
 @Composable
 fun VideoWebViewPlayer(
@@ -57,13 +59,14 @@ fun VideoWebViewPlayer(
     mediaType: String = "movie",
     season: Int? = null,
     episode: Int? = null,
+    malId: Int? = null,
     modifier: Modifier = Modifier
 ) {
     LockLandscapeFullscreen()
 
-    val embedUrl = remember(tmdbId, mediaType, season, episode) {
-        buildVidSrcEmbedUrl(
-            tmdbId = tmdbId,
+    val embedUrl = remember(tmdbId, mediaType, season, episode, malId) {
+        buildVidSrcUrl(
+            id = tmdbId,
             mediaType = mediaType,
             season = season,
             episode = episode
@@ -123,20 +126,30 @@ fun VideoWebViewPlayer(
     }
 }
 
-private fun buildVidSrcEmbedUrl(
-    tmdbId: Int,
+/**
+ * Builds a VidSrc SBS embed URL tuned for mobile playback:
+ * - autoplay=1: starts immediately, no extra tap needed on a small screen
+ * - controls=1: keep native controls since we're not spoofing desktop UI
+ * - sub=en: sensible default subtitle language
+ * - color: accent color for the player chrome (without '#')
+ */
+private fun buildVidSrcUrl(
+    id: Int,
     mediaType: String,
     season: Int?,
     episode: Int?
 ): String {
-    val path = if (mediaType.equals("tv", ignoreCase = true)) {
-        "/embed/tv/$tmdbId/${season ?: 1}/${episode ?: 1}"
-    } else {
-        "/embed/movie/$tmdbId"
+    val basePath = when (mediaType.lowercase()) {
+        "tv", "anime" -> "https://$VIDSRC_HOST/embed/tv/$id/${season ?: 1}/${episode ?: 1}"
+        else -> "https://$VIDSRC_HOST/embed/movie/$id"
     }
-
-    return "https://$VID_SRC_HOST$path" +
-        "?autoplay=1&color=$PLAYER_ACCENT_COLOR&sub=$ARABIC_SUBTITLE_LANGUAGE"
+    val query = listOf(
+        "autoplay=1",
+        "controls=1",
+        "sub=en",
+        "color=e50914"
+    ).joinToString("&")
+    return "$basePath?$query"
 }
 
 @Composable
@@ -157,11 +170,27 @@ private fun VidSrcWebView(
                 )
                 setBackgroundColor(AndroidColor.BLACK)
                 configureForVidSrc()
+
                 webViewClient = vidSrcWebViewClient(
                     onLoadStarted = onLoadStarted,
                     onLoadFinished = onLoadFinished,
                     onLoadFailed = onLoadFailed
                 )
+
+                // Block popups/new windows at the chrome-client level too —
+                // this is how most stream-embed ad networks try to escape
+                // (window.open based pop-unders), even with JS-open disabled below.
+                webChromeClient = object : android.webkit.WebChromeClient() {
+                    override fun onCreateWindow(
+                        view: WebView,
+                        isDialog: Boolean,
+                        isUserGesture: Boolean,
+                        resultMsg: android.os.Message?
+                    ): Boolean {
+                        Log.d("VideoWebViewPlayer", "Blocked popup window creation")
+                        return false
+                    }
+                }
             }
         },
         update = { webView ->
@@ -188,15 +217,27 @@ private fun WebView.configureForVidSrc() {
         javaScriptEnabled = true
         domStorageEnabled = true
         mediaPlaybackRequiresUserGesture = false
-        loadWithOverviewMode = true
+
+        // --- MOBILE MODE (no desktop UA spoof) ---
+        // VidSrc SBS ships a responsive/mobile-aware player, so we keep the
+        // WebView's native mobile user agent and let its layout adapt.
         useWideViewPort = true
+        loadWithOverviewMode = true
+
+        // Ad-blocking: never let JS open new windows/tabs/popups.
         javaScriptCanOpenWindowsAutomatically = false
         setSupportMultipleWindows(false)
+
+        // Reduce ad-adjacent attack surface; VidSrc doesn't need file/content
+        // access or geolocation to play video.
         allowFileAccess = false
         allowContentAccess = false
-        mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
-    }
+        setGeolocationEnabled(false)
 
+        // Slightly better default zoom/touch behavior on small screens.
+        builtInZoomControls = false
+        displayZoomControls = false
+    }
     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
 }
 
@@ -205,19 +246,79 @@ private fun vidSrcWebViewClient(
     onLoadFinished: () -> Unit,
     onLoadFailed: (String) -> Unit
 ) = object : WebViewClient() {
-    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-        if (!request.isForMainFrame) return false
 
+    // Network-level ad/tracker blocklist. Matched against every request the
+    // WebView makes (scripts, iframes, xhr, images, redirects, etc.), so this
+    // is the primary defense — it works even when a request never triggers
+    // top-level navigation.
+    private val AD_BLOCK_LIST = listOf(
+        "doubleclick.net",
+        "googlesyndication.com",
+        "googleadservices.com",
+        "google-analytics.com",
+        "googletagmanager.com",
+        "adnxs.com",
+        "mads.amazon-adsystem.com",
+        "amazon-adsystem.com",
+        "openx.net",
+        "casalemedia.com",
+        "popads.net",
+        "popcash.net",
+        "onclickads.net",
+        "propellerads.com",
+        "adsterra.com",
+        "exoclick.com",
+        "juicyads.com",
+        "ero-advertising.com",
+        "trafficjunky.net",
+        "clickadu.com",
+        "hilltopads.net",
+        "adskeeper.co.uk",
+        "mgid.com",
+        "taboola.com",
+        "outbrain.com",
+        "revcontent.com",
+        "smartadserver.com",
+        "pubmatic.com",
+        "rubiconproject.com",
+        "yieldmo.com",
+        "adform.net",
+        "bidswitch.net",
+        "criteo.com",
+        "adroll.com",
+        "media.net",
+        "adsrvr.org"
+    )
+
+    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
         val uri = request.url
         val host = uri.host ?: return true
-        val isVidSrcEmbed = uri.scheme.equals("https", ignoreCase = true) &&
-            (host.equals(VID_SRC_HOST, ignoreCase = true) ||
-                host.endsWith(".$VID_SRC_HOST", ignoreCase = true))
 
-        if (!isVidSrcEmbed) {
-            Log.d("VideoWebViewPlayer", "Blocked external navigation: $uri")
+        // Only allow top-level navigation within VidSrc itself. This stops
+        // full-page redirect ads / pop-unders that some stream embeds try to
+        // trigger, while still letting the player load its video sources
+        // internally via non-navigation requests (handled below).
+        val isAllowed = uri.scheme.equals("https", ignoreCase = true) &&
+                (host.equals(VIDSRC_HOST, ignoreCase = true) ||
+                        host.endsWith(".$VIDSRC_HOST", ignoreCase = true))
+
+        if (!isAllowed) {
+            Log.d("VideoWebViewPlayer", "Blocked navigation to: $uri")
+            return true // Block navigation
         }
-        return !isVidSrcEmbed
+        return false
+    }
+
+    override fun shouldInterceptRequest(
+        view: WebView,
+        request: WebResourceRequest
+    ): WebResourceResponse? {
+        val url = request.url.toString()
+        if (AD_BLOCK_LIST.any { url.contains(it, ignoreCase = true) }) {
+            Log.d("VideoWebViewPlayer", "Blocked request: $url")
+            return WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream("".toByteArray()))
+        }
+        return super.shouldInterceptRequest(view, request)
     }
 
     override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
@@ -241,6 +342,7 @@ private fun vidSrcWebViewClient(
         }
     }
 }
+
 
 @Composable
 private fun LockLandscapeFullscreen() {
