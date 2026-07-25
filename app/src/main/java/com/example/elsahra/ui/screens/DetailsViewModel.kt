@@ -79,6 +79,9 @@ class DetailsViewModel @Inject constructor(
             _reviews.value = emptyList()
             _episodes.value = emptyList()
             _trailerKey.value = null
+            _activeTmdbId.value = null
+            _currentSeason.value = null
+            _currentEpisode.value = null
 
             try {
                 if (mediaType == "tv") {

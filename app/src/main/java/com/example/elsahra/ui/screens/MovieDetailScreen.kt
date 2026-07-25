@@ -1,7 +1,6 @@
 package com.example.elsahra.ui.screens
 
 import android.content.Intent
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,6 +13,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -194,6 +194,7 @@ fun MovieDetailScreen(
                             voteCount = currentMovie?.voteCount ?: currentTvShow?.voteCount ?: 0,
                             onBack = onBack,
                             onPlayClick = {
+                                selectedTabIndex = 0
                                 if (currentMovie != null) {
                                     viewModel.loadMovieStream(currentMovie.id)
                                 } else if (currentTvShow != null && episodes.isNotEmpty()) {
@@ -257,10 +258,11 @@ fun MovieDetailScreen(
                                             }
                                             items(episodes) { episode ->
                                                 EpisodeItem(
-                                                    episode = episode,
-                                                    onPlayClick = {
-                                                        viewModel.loadTvStream(currentTvShow.id, episode.seasonNumber, episode.episodeNumber)
-                                                    }
+                                                episode = episode,
+                                                onPlayClick = {
+                                                    selectedTabIndex = 0
+                                                    viewModel.loadTvStream(currentTvShow.id, episode.seasonNumber, episode.episodeNumber)
+                                                }
                                                 )
                                             }
                                         }
@@ -280,6 +282,10 @@ fun MovieDetailScreen(
                                         tvShow = currentTvShow,
                                         cast = cast,
                                         crew = crew,
+                                        streamTmdbId = activeTmdbId,
+                                        streamMediaType = mediaType ?: "movie",
+                                        streamSeason = currentSeason,
+                                        streamEpisode = currentEpisode,
                                         modifier = Modifier
                                             .fillMaxSize()
                                             .verticalScroll(rememberScrollState())
@@ -302,24 +308,6 @@ fun MovieDetailScreen(
                 }
             }
 
-            activeTmdbId?.let { id ->
-                BackHandler {
-                    viewModel.clearStream()
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black)
-                ) {
-                    VideoWebViewPlayer(
-                        tmdbId = id,
-                        mediaType = mediaType ?: "movie",
-                        season = currentSeason,
-                        episode = currentEpisode,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-            }
         }
     }
 }
@@ -543,6 +531,10 @@ fun AboutSection(
     tvShow: TvShowDetails?,
     cast: List<Cast>,
     crew: List<Crew>,
+    streamTmdbId: Int?,
+    streamMediaType: String,
+    streamSeason: Int?,
+    streamEpisode: Int?,
     modifier: Modifier = Modifier
 ) {
     val overview = movie?.overview ?: tvShow?.overview ?: ""
@@ -552,6 +544,24 @@ fun AboutSection(
     val writers = crew.filter { it.department == "Writing" || it.job == "Writer" || it.job == "Screenplay" }.take(3).map { it.name }
 
     Column(modifier = modifier.padding(16.dp)) {
+        streamTmdbId?.let { id ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+                    .padding(bottom = 16.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.Black)
+            ) {
+                VideoWebViewPlayer(
+                    tmdbId = id,
+                    mediaType = streamMediaType,
+                    season = streamSeason,
+                    episode = streamEpisode,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
         if (tagline.isNotEmpty()) {
             Text(
                 text = "\"$tagline\"",
