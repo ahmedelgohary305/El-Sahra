@@ -296,7 +296,10 @@ fun SearchInitialState(
             MoviesRow(
                 title = stringResource(R.string.top_searches),
                 movies = topSearches,
-                onMovieClick = { id, type -> onMovieClick(id, type) }
+                onMovieClick = { id, type -> onMovieClick(id, type) },
+                // Keep the row's placeholders visible if the initial request fails
+                // offline and therefore returns no Top Searches.
+                isLoading = topSearches.isEmpty()
             )
         }
     }

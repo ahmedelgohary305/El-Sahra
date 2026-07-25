@@ -25,11 +25,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -40,7 +38,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
 import coil.compose.AsyncImage
@@ -166,7 +163,13 @@ fun MoviePagingRow(
                 )
 
         }
-        if (movies.loadState.refresh is LoadState.Loading) {
+        // A first request without a connection ends in Error with no items. Keep the
+        // placeholder visible in that case so every home section has the same loading
+        // treatment as the hero banner instead of rendering an empty row.
+        val showInitialSkeleton = movies.loadState.refresh is LoadState.Loading ||
+            (movies.loadState.refresh is LoadState.Error && movies.itemCount == 0)
+
+        if (showInitialSkeleton) {
             MovieRowSkeleton(showTitle = false)
         } else {
             LazyRow(
@@ -186,7 +189,7 @@ fun MoviePagingRow(
                     }
                 }
 
-                when (val state = movies.loadState.append) {
+                when (movies.loadState.append) {
                     is LoadState.Loading -> {
                         item {
                             MovieItemSkeleton(modifier = Modifier.width(140.dp))
@@ -309,7 +312,10 @@ fun MoviesPagingGrid(
     modifier: Modifier = Modifier,
     columns: GridCells = GridCells.Fixed(2)
 ) {
-    if (movies.loadState.refresh is LoadState.Loading) {
+    val showInitialSkeleton = movies.loadState.refresh is LoadState.Loading ||
+        (movies.loadState.refresh is LoadState.Error && movies.itemCount == 0)
+
+    if (showInitialSkeleton) {
         MoviesGridSkeleton(modifier = modifier, columns = columns)
     } else {
         LazyVerticalGrid(

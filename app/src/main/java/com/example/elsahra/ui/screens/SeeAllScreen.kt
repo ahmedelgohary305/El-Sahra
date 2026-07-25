@@ -14,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -23,6 +24,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import com.example.elsahra.R
 import com.example.elsahra.ui.components.MovieItem
 import com.example.elsahra.ui.components.MoviesPagingGrid
+import com.example.elsahra.util.shimmer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,28 +88,42 @@ fun SeeAllScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                item {
-                    FilterChip(
-                        selected = selectedGenreId == null,
-                        onClick = { viewModel.setSelectedGenre(null) },
-                        label = { Text(text = stringResource(R.string.all)) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                if (genres.isEmpty()) {
+                    // Match the real FilterChip height and Material shape while its
+                    // genre label is still unavailable.
+                    items(4) { index ->
+                        Box(
+                            modifier = Modifier
+                                .width(if (index == 0) 56.dp else 88.dp)
+                                .height(32.dp)
+                                .clip(FilterChipDefaults.shape)
+                                .shimmer()
                         )
-                    )
-                }
+                    }
+                } else {
+                    item {
+                        FilterChip(
+                            selected = selectedGenreId == null,
+                            onClick = { viewModel.setSelectedGenre(null) },
+                            label = { Text(text = stringResource(R.string.all)) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        )
+                    }
 
-                items(genres) { genre ->
-                    FilterChip(
-                        selected = selectedGenreId == genre.id,
-                        onClick = { viewModel.setSelectedGenre(genre.id) },
-                        label = { Text(text = genre.name) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                    items(genres) { genre ->
+                        FilterChip(
+                            selected = selectedGenreId == genre.id,
+                            onClick = { viewModel.setSelectedGenre(genre.id) },
+                            label = { Text(text = genre.name) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                            )
                         )
-                    )
+                    }
                 }
             }
 
@@ -115,6 +131,15 @@ fun SeeAllScreen(
                 modifier = Modifier.weight(1f)
             ) {
                 when {
+                    movies.itemCount == 0 &&
+                        (movies.loadState.refresh is LoadState.Loading ||
+                            movies.loadState.refresh is LoadState.Error) -> {
+                        MoviesPagingGrid(
+                            movies = movies,
+                            onMovieClick = { movieId, type -> onMovieClick(movieId, type ?: mediaType) },
+                            columns = GridCells.Adaptive(150.dp)
+                        )
+                    }
                     movies.loadState.refresh is LoadState.Error -> {
                         Column(
                             modifier = Modifier.align(Alignment.Center),
