@@ -26,8 +26,8 @@ fun AppNavigation(
                 onMovieClick = { id: Int, type: String? -> navController.navigate(Destination.Details(id, type)) },
                 onSearchClick = { navController.navigate(Destination.Search) },
                 onSettingsClick = { navController.navigate(Destination.Settings) },
-                onSeeAllClick = { category, title -> 
-                    navController.navigate(Destination.SeeAll(category, title)) 
+                onSeeAllClick = { category, title, mediaType -> 
+                    navController.navigate(Destination.SeeAll(category, title, mediaType)) 
                 },
                 viewModel = hiltViewModel()
             )
@@ -44,6 +44,7 @@ fun AppNavigation(
             SeeAllScreen(
                 category = seeAll.category,
                 title = seeAll.title,
+                mediaType = seeAll.mediaType,
                 onBack = { navController.popBackStack() },
                 onMovieClick = { id, type -> navController.navigate(Destination.Details(id, type)) },
                 viewModel = hiltViewModel()

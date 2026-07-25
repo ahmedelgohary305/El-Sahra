@@ -42,8 +42,40 @@ class MovieRepository @Inject constructor(private val api: TmdbApi) {
         ).flow
     }
 
+    fun getTrendingTvShowsPaging(language: String): Flow<PagingData<Movie>> {
+        return Pager(
+            config = PagingConfig(pageSize = 20),
+            pagingSourceFactory = { MoviePagingSource { page -> api.getTrendingTvShows(apiKey, language, page) } }
+        ).flow
+    }
+
+    fun getPopularTvShowsPaging(language: String): Flow<PagingData<Movie>> {
+        return Pager(
+            config = PagingConfig(pageSize = 20),
+            pagingSourceFactory = { MoviePagingSource { page -> api.getPopularTvShows(apiKey, language, page) } }
+        ).flow
+    }
+
+    fun getTopRatedTvShowsPaging(language: String): Flow<PagingData<Movie>> {
+        return Pager(
+            config = PagingConfig(pageSize = 20),
+            pagingSourceFactory = { MoviePagingSource { page -> api.getTopRatedTvShows(apiKey, language, page) } }
+        ).flow
+    }
+
+    fun getOnTheAirTvShowsPaging(language: String): Flow<PagingData<Movie>> {
+        return Pager(
+            config = PagingConfig(pageSize = 20),
+            pagingSourceFactory = { MoviePagingSource { page -> api.getOnTheAirTvShows(apiKey, language, page) } }
+        ).flow
+    }
+
     suspend fun getTrendingMovies(language: String): List<Movie> {
         return api.getTrendingMovies(apiKey, language).results
+    }
+
+    suspend fun getTrendingTvShows(language: String): List<Movie> {
+        return api.getTrendingTvShows(apiKey, language).results
     }
 
     suspend fun searchMovies(query: String, language: String, region: String? = null): List<Movie> {
@@ -52,6 +84,10 @@ class MovieRepository @Inject constructor(private val api: TmdbApi) {
 
     suspend fun getGenres(language: String): List<Genre> {
         return api.getMovieGenres(apiKey, language).genres
+    }
+
+    suspend fun getTvGenres(language: String): List<Genre> {
+        return api.getTvGenres(apiKey, language).genres
     }
 
     suspend fun getMovieDetails(movieId: Int, language: String): com.example.elsahra.data.model.MovieDetails {
@@ -88,10 +124,54 @@ class MovieRepository @Inject constructor(private val api: TmdbApi) {
     suspend fun getTvVideos(tvId: Int, language: String) =
         api.getTvVideos(tvId, apiKey, language).results
 
-    fun getMoviesByGenrePaging(genreId: Int?, language: String, sortBy: String = "popularity.desc", region: String? = null): Flow<PagingData<Movie>> {
+    fun getMoviesByGenrePaging(
+        genreId: Int?, 
+        language: String, 
+        sortBy: String = "popularity.desc", 
+        region: String? = null, 
+        voteCountGte: Int? = null,
+        releaseDateGte: String? = null,
+        releaseDateLte: String? = null
+    ): Flow<PagingData<Movie>> {
         return Pager(
             config = PagingConfig(pageSize = 20),
-            pagingSourceFactory = { MoviePagingSource { page -> api.discoverMovies(apiKey, language, page, genreId?.toString(), sortBy, region) } }
+            pagingSourceFactory = { 
+                MoviePagingSource { page -> 
+                    api.discoverMovies(
+                        apiKey, language, page, genreId?.toString(), sortBy, region, 
+                        voteCountGte = voteCountGte,
+                        releaseDateGte = releaseDateGte,
+                        releaseDateLte = releaseDateLte
+                    ) 
+                } 
+            }
+        ).flow
+    }
+
+    fun getTvShowsByGenrePaging(
+        genreId: Int?, 
+        language: String, 
+        sortBy: String = "popularity.desc", 
+        voteCountGte: Int? = null,
+        airDateGte: String? = null,
+        airDateLte: String? = null,
+        firstAirDateGte: String? = null,
+        firstAirDateLte: String? = null
+    ): Flow<PagingData<Movie>> {
+        return Pager(
+            config = PagingConfig(pageSize = 20),
+            pagingSourceFactory = { 
+                MoviePagingSource { page -> 
+                    api.discoverTvShows(
+                        apiKey, language, page, genreId?.toString(), sortBy, 
+                        voteCountGte = voteCountGte,
+                        airDateGte = airDateGte,
+                        airDateLte = airDateLte,
+                        firstAirDateGte = firstAirDateGte,
+                        firstAirDateLte = firstAirDateLte
+                    ) 
+                } 
+            }
         ).flow
     }
 }

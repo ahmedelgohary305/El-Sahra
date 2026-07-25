@@ -14,12 +14,26 @@ interface TmdbApi {
         @Query("region") region: String? = null
     ): MovieResponse
 
+    @GET("tv/popular")
+    suspend fun getPopularTvShows(
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String = "en-US",
+        @Query("page") page: Int = 1
+    ): MovieResponse
+
     @GET("movie/top_rated")
     suspend fun getTopRatedMovies(
         @Query("api_key") apiKey: String,
         @Query("language") language: String = "en-US",
         @Query("page") page: Int = 1,
         @Query("region") region: String? = null
+    ): MovieResponse
+
+    @GET("tv/top_rated")
+    suspend fun getTopRatedTvShows(
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String = "en-US",
+        @Query("page") page: Int = 1
     ): MovieResponse
 
     @GET("movie/now_playing")
@@ -30,8 +44,22 @@ interface TmdbApi {
         @Query("region") region: String? = null
     ): MovieResponse
 
+    @GET("tv/on_the_air")
+    suspend fun getOnTheAirTvShows(
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String = "en-US",
+        @Query("page") page: Int = 1
+    ): MovieResponse
+
     @GET("trending/movie/day")
     suspend fun getTrendingMovies(
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String = "en-US",
+        @Query("page") page: Int = 1
+    ): MovieResponse
+
+    @GET("trending/tv/day")
+    suspend fun getTrendingTvShows(
         @Query("api_key") apiKey: String,
         @Query("language") language: String = "en-US",
         @Query("page") page: Int = 1
@@ -48,6 +76,12 @@ interface TmdbApi {
 
     @GET("genre/movie/list")
     suspend fun getMovieGenres(
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String = "en-US"
+    ): GenreResponse
+
+    @GET("genre/tv/list")
+    suspend fun getTvGenres(
         @Query("api_key") apiKey: String,
         @Query("language") language: String = "en-US"
     ): GenreResponse
@@ -141,6 +175,25 @@ interface TmdbApi {
         @Query("page") page: Int = 1,
         @Query("with_genres") withGenres: String? = null,
         @Query("sort_by") sortBy: String? = "popularity.desc",
-        @Query("region") region: String? = null
+        @Query("region") region: String? = null,
+        @Query("with_original_language") withOriginalLanguage: String? = null,
+        @Query("vote_count.gte") voteCountGte: Int? = null,
+        @Query("primary_release_date.gte") releaseDateGte: String? = null,
+        @Query("primary_release_date.lte") releaseDateLte: String? = null
+    ): MovieResponse
+
+    @GET("discover/tv")
+    suspend fun discoverTvShows(
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String = "en-US",
+        @Query("page") page: Int = 1,
+        @Query("with_genres") withGenres: String? = null,
+        @Query("sort_by") sortBy: String? = "popularity.desc",
+        @Query("with_original_language") withOriginalLanguage: String? = null,
+        @Query("vote_count.gte") voteCountGte: Int? = null,
+        @Query("air_date.gte") airDateGte: String? = null,
+        @Query("air_date.lte") airDateLte: String? = null,
+        @Query("first_air_date.gte") firstAirDateGte: String? = null,
+        @Query("first_air_date.lte") firstAirDateLte: String? = null
     ): MovieResponse
 }

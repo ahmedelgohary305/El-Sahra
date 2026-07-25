@@ -10,33 +10,20 @@ import android.util.Log
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.webkit.CookieManager
-import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -72,9 +59,6 @@ fun VideoWebViewPlayer(
             episode = episode
         )
     }
-    var reloadToken by remember(embedUrl) { mutableIntStateOf(0) }
-    var isLoading by remember(embedUrl) { mutableStateOf(true) }
-    var loadFailed by remember(embedUrl) { mutableStateOf(false) }
 
     Box(
         modifier = modifier
@@ -84,45 +68,8 @@ fun VideoWebViewPlayer(
     ) {
         VidSrcWebView(
             url = embedUrl,
-            reloadToken = reloadToken,
-            onLoadStarted = {
-                isLoading = true
-                loadFailed = false
-            },
-            onLoadFinished = { isLoading = false },
-            onLoadFailed = { description ->
-                Log.w("VideoWebViewPlayer", "VidSrc failed to load: $description")
-                isLoading = false
-                loadFailed = true
-            },
             modifier = Modifier.fillMaxSize()
         )
-
-        if (isLoading && !loadFailed) {
-            CircularProgressIndicator(
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-
-        if (loadFailed) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "Unable to load the video.",
-                    color = Color.White,
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Button(
-                    onClick = {
-                        loadFailed = false
-                        isLoading = true
-                        reloadToken++
-                    }
-                ) {
-                    Text("Try again")
-                }
-            }
-        }
     }
 }
 
@@ -155,10 +102,6 @@ private fun buildVidSrcUrl(
 @Composable
 private fun VidSrcWebView(
     url: String,
-    reloadToken: Int,
-    onLoadStarted: () -> Unit,
-    onLoadFinished: () -> Unit,
-    onLoadFailed: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     AndroidView(
@@ -171,11 +114,7 @@ private fun VidSrcWebView(
                 setBackgroundColor(AndroidColor.BLACK)
                 configureForVidSrc()
 
-                webViewClient = vidSrcWebViewClient(
-                    onLoadStarted = onLoadStarted,
-                    onLoadFinished = onLoadFinished,
-                    onLoadFailed = onLoadFailed
-                )
+                webViewClient = vidSrcWebViewClient()
 
                 // Block popups/new windows at the chrome-client level too —
                 // this is how most stream-embed ad networks try to escape
@@ -194,9 +133,8 @@ private fun VidSrcWebView(
             }
         },
         update = { webView ->
-            val loadKey = "$url#$reloadToken"
-            if (webView.tag != loadKey) {
-                webView.tag = loadKey
+            if (webView.tag != url) {
+                webView.tag = url
                 webView.stopLoading()
                 webView.loadUrl(url)
             }
@@ -241,11 +179,7 @@ private fun WebView.configureForVidSrc() {
     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
 }
 
-private fun vidSrcWebViewClient(
-    onLoadStarted: () -> Unit,
-    onLoadFinished: () -> Unit,
-    onLoadFailed: (String) -> Unit
-) = object : WebViewClient() {
+private fun vidSrcWebViewClient() = object : WebViewClient() {
 
     // Network-level ad/tracker blocklist. Matched against every request the
     // WebView makes (scripts, iframes, xhr, images, redirects, etc.), so this
@@ -319,27 +253,6 @@ private fun vidSrcWebViewClient(
             return WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream("".toByteArray()))
         }
         return super.shouldInterceptRequest(view, request)
-    }
-
-    override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
-        super.onPageStarted(view, url, favicon)
-        onLoadStarted()
-    }
-
-    override fun onPageFinished(view: WebView, url: String) {
-        super.onPageFinished(view, url)
-        onLoadFinished()
-    }
-
-    override fun onReceivedError(
-        view: WebView,
-        request: WebResourceRequest,
-        error: WebResourceError
-    ) {
-        super.onReceivedError(view, request, error)
-        if (request.isForMainFrame) {
-            onLoadFailed(error.description?.toString() ?: "Unknown WebView error")
-        }
     }
 }
 

@@ -49,6 +49,8 @@ import com.example.elsahra.data.model.Movie
 import com.example.elsahra.util.FormatUtils
 import java.util.Locale
 
+import com.example.elsahra.ui.theme.Gold
+
 @Composable
 fun MovieItem(
     movie: Movie,
@@ -80,11 +82,8 @@ fun MovieItem(
         Spacer(modifier = Modifier.height(10.dp))
         Text(
             text = movie.displayTitle,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp
-            ),
-            maxLines = 1,
+            style = MaterialTheme.typography.titleSmall,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 4.dp)
         )
@@ -97,7 +96,7 @@ fun MovieItem(
                 imageVector = Icons.Rounded.Star,
                 contentDescription = null,
                 modifier = Modifier.size(16.dp),
-                tint = colorScheme.primary
+                tint = Gold
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
@@ -133,7 +132,7 @@ fun MovieItem(
 fun MoviePagingRow(
     title: String,
     movies: LazyPagingItems<Movie>,
-    onMovieClick: (Int) -> Unit,
+    onMovieClick: (Int, String?) -> Unit,
     onSeeAllClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -156,57 +155,54 @@ fun MoviePagingRow(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleLarge
                 )
             }
                 Text(
                     text = stringResource(R.string.see_all),
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
+                    style = MaterialTheme.typography.titleMedium,
                     color = colorScheme.primary,
                     modifier = Modifier.clickable { onSeeAllClick() }
                 )
 
         }
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            items(movies.itemCount) { index ->
-                val movie = movies[index]
-                if (movie != null) {
-                    MovieItem(
-                        movie = movie,
-                        onClick = onMovieClick,
-                        modifier = Modifier.width(140.dp)
-                    )
+        if (movies.loadState.refresh is LoadState.Loading) {
+            MovieRowSkeleton(showTitle = false)
+        } else {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                items(movies.itemCount) { index ->
+                    val movie = movies[index]
+                    if (movie != null) {
+                        MovieItem(
+                            movie = movie,
+                            onClick = { onMovieClick(it, movie.mediaType) },
+                            modifier = Modifier.width(140.dp)
+                        )
+                    }
                 }
-            }
 
-            when (val state = movies.loadState.append) {
-                is LoadState.Loading -> {
-                    item {
-                        CircularProgressIndicator(
-                            modifier = Modifier
-                                .padding(16.dp)
-                                .size(32.dp),
-                            strokeWidth = 3.dp
-                        )
+                when (val state = movies.loadState.append) {
+                    is LoadState.Loading -> {
+                        item {
+                            MovieItemSkeleton(modifier = Modifier.width(140.dp))
+                        }
                     }
-                }
-                is LoadState.Error -> {
-                    item {
-                        Text(
-                            text = stringResource(R.string.error_loading),
-                            modifier = Modifier.padding(16.dp),
-                            color = MaterialTheme.colorScheme.error
-                        )
+                    is LoadState.Error -> {
+                        item {
+                            Text(
+                                text = stringResource(R.string.error_loading),
+                                modifier = Modifier.padding(16.dp),
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
                     }
+                    else -> {}
                 }
-                else -> {}
             }
         }
     }
@@ -218,7 +214,8 @@ fun MoviesRow(
     movies: List<Movie>,
     onMovieClick: (Int, String?) -> Unit,
     onSeeAllClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isLoading: Boolean = false
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         if (title != null || onSeeAllClick != null) {
@@ -241,34 +238,36 @@ fun MoviesRow(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = title,
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                            style = MaterialTheme.typography.titleLarge
                         )
                     }
                 }
                 if (onSeeAllClick != null) {
                     Text(
                         text = stringResource(R.string.see_all),
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.SemiBold
-                        ),
+                        style = MaterialTheme.typography.titleMedium,
                         color = colorScheme.primary,
                         modifier = Modifier.clickable { onSeeAllClick() }
                     )
                 }
             }
         }
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            items(movies, key = { it.id }) { movie ->
-                MovieItem(
-                    movie = movie,
-                    onClick = { onMovieClick(it, movie.mediaType) },
-                    modifier = Modifier.width(140.dp)
-                )
+        if (isLoading) {
+            MovieRowSkeleton(showTitle = false)
+        } else {
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.Top
+            ) {
+                items(movies, key = { it.id }) { movie ->
+                    MovieItem(
+                        movie = movie,
+                        onClick = { onMovieClick(it, movie.mediaType) },
+                        modifier = Modifier.width(140.dp)
+                    )
+                }
             }
         }
     }
@@ -279,21 +278,26 @@ fun MoviesGrid(
     movies: List<Movie>,
     onMovieClick: (Int, String?) -> Unit,
     modifier: Modifier = Modifier,
-    columns: GridCells = GridCells.Fixed(2)
+    columns: GridCells = GridCells.Fixed(2),
+    isLoading: Boolean = false
 ) {
-    LazyVerticalGrid(
-        columns = columns,
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        items(movies, key = { it.id }) { movie ->
-            MovieItem(
-                movie = movie,
-                onClick = { onMovieClick(it, movie.mediaType) },
-                modifier = Modifier.fillMaxWidth()
-            )
+    if (isLoading) {
+        MoviesGridSkeleton(modifier = modifier, columns = columns)
+    } else {
+        LazyVerticalGrid(
+            columns = columns,
+            modifier = modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(movies, key = { it.id }) { movie ->
+                MovieItem(
+                    movie = movie,
+                    onClick = { onMovieClick(it, movie.mediaType) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
@@ -305,33 +309,30 @@ fun MoviesPagingGrid(
     modifier: Modifier = Modifier,
     columns: GridCells = GridCells.Fixed(2)
 ) {
-    LazyVerticalGrid(
-        columns = columns,
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        items(movies.itemCount) { index ->
-            val movie = movies[index]
-            if (movie != null) {
-                MovieItem(
-                    movie = movie,
-                    onClick = { onMovieClick(it, movie.mediaType) },
-                    modifier = Modifier.fillMaxWidth()
-                )
+    if (movies.loadState.refresh is LoadState.Loading) {
+        MoviesGridSkeleton(modifier = modifier, columns = columns)
+    } else {
+        LazyVerticalGrid(
+            columns = columns,
+            modifier = modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            items(movies.itemCount) { index ->
+                val movie = movies[index]
+                if (movie != null) {
+                    MovieItem(
+                        movie = movie,
+                        onClick = { onMovieClick(it, movie.mediaType) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
-        }
 
-        if (movies.loadState.append is LoadState.Loading) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(32.dp))
+            if (movies.loadState.append is LoadState.Loading) {
+                items(2) {
+                    MovieItemSkeleton(modifier = Modifier.fillMaxWidth())
                 }
             }
         }

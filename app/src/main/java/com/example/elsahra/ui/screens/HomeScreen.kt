@@ -24,8 +24,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -41,8 +39,14 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,8 +58,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -63,7 +67,9 @@ import androidx.compose.ui.unit.sp
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil.compose.AsyncImage
 import com.example.elsahra.R
+import com.example.elsahra.ui.theme.Gold
 import com.example.elsahra.ui.components.MoviePagingRow
+import com.example.elsahra.ui.components.HeroBannerSkeleton
 import com.example.elsahra.util.FormatUtils
 import java.util.Locale
 
@@ -73,14 +79,12 @@ fun HomeScreen(
     onMovieClick: (Int, String?) -> Unit,
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    onSeeAllClick: (String, String) -> Unit,
+    onSeeAllClick: (String, String, String?) -> Unit,
     viewModel: HomeViewModel // Provided via hiltViewModel() in AppNavigation
 ) {
-    val trending by viewModel.trending.collectAsState()
-    val trendingPaging = viewModel.trendingPaging.collectAsLazyPagingItems()
-    val popularPaging = viewModel.popularPaging.collectAsLazyPagingItems()
-    val topRatedPaging = viewModel.topRatedPaging.collectAsLazyPagingItems()
-    val nowPlayingPaging = viewModel.nowPlayingPaging.collectAsLazyPagingItems()
+    val selectedMediaType by viewModel.selectedMediaType.collectAsState()
+    val pagerState = rememberPagerState(pageCount = { 2 })
+    val coroutineScope = rememberCoroutineScope()
 
     val context = LocalContext.current
     val activity = context as? androidx.activity.ComponentActivity
@@ -91,60 +95,237 @@ fun HomeScreen(
         viewModel.loadData()
     }
 
+    // Sync Tab Selection with Pager
+    androidx.compose.runtime.LaunchedEffect(selectedMediaType) {
+        val targetPage = when (selectedMediaType) {
+            HomeViewModel.MediaType.MOVIE -> 0
+            HomeViewModel.MediaType.TV -> 1
+        }
+        if (pagerState.currentPage != targetPage) {
+            pagerState.animateScrollToPage(targetPage)
+        }
+    }
+
+    // Sync Pager with Tab Selection
+    androidx.compose.runtime.LaunchedEffect(pagerState.currentPage) {
+        val targetType = when (pagerState.currentPage) {
+            0 -> HomeViewModel.MediaType.MOVIE
+            else -> HomeViewModel.MediaType.TV
+        }
+        if (selectedMediaType != targetType) {
+            viewModel.setSelectedMediaType(targetType)
+        }
+    }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            contentPadding = PaddingValues(bottom = 24.dp)
-        ) {
-            item {
-                Column(modifier = Modifier.statusBarsPadding()) {
-                    TopAppBar(
-                        title = {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.statusBarsPadding()) {
+                TopAppBar(
+                    title = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_logo),
+                                contentDescription = null,
+                                modifier = Modifier.size(44.dp),
+                                tint = Color.Unspecified
+                            )
                             Text(
                                 text = stringResource(R.string.app_name),
                                 style = MaterialTheme.typography.titleLarge
                             )
-                        },
-                        actions = {
-                            IconButton(onClick = onSearchClick) {
-                                Icon(Icons.Default.Search, contentDescription = "Search")
-                            }
-                            IconButton(onClick = onSettingsClick) {
-                                Icon(Icons.Default.Settings, contentDescription = "Settings")
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = Color.Transparent,
-                            titleContentColor = MaterialTheme.colorScheme.primary
-                        )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onSearchClick) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.search),
+                                contentDescription = "Search",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        IconButton(onClick = onSettingsClick) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.settings),
+                                contentDescription = "Settings",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.primary
                     )
-                    HeroBanner(
-                        movies = trending.take(3),
-                        onClick = { onMovieClick(it, "movie") },
-                        widthSizeClass = windowSizeClass?.widthSizeClass ?: WindowWidthSizeClass.Compact
-                    )
+                )
+
+                MediaTabs(
+                    selectedType = selectedMediaType,
+                    onTypeSelected = { type ->
+                        coroutineScope.launch {
+                            viewModel.setSelectedMediaType(type)
+                        }
+                    }
+                )
+            }
+
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize(),
+                userScrollEnabled = true,
+                beyondViewportPageCount = 0 // Key for "load when I go to it"
+            ) { page ->
+                when (page) {
+                    0 -> MovieTab(viewModel, onMovieClick, onSeeAllClick, windowSizeClass?.widthSizeClass ?: WindowWidthSizeClass.Compact)
+                    1 -> TvTab(viewModel, onMovieClick, onSeeAllClick, windowSizeClass?.widthSizeClass ?: WindowWidthSizeClass.Compact)
                 }
             }
-            item {
-                val title = stringResource(R.string.trending)
-                MoviePagingRow(title, trendingPaging, { onMovieClick(it, "movie") }, { onSeeAllClick("trending", title) })
+        }
+    }
+}
+
+@Composable
+fun MovieTab(
+    viewModel: HomeViewModel,
+    onMovieClick: (Int, String?) -> Unit,
+    onSeeAllClick: (String, String, String?) -> Unit,
+    widthSizeClass: WindowWidthSizeClass
+) {
+    val trending by viewModel.trendingMovies.collectAsState()
+    val trendingPaging = viewModel.trendingMoviesPaging.collectAsLazyPagingItems()
+    val popularPaging = viewModel.popularMoviesPaging.collectAsLazyPagingItems()
+    val topRatedPaging = viewModel.topRatedMoviesPaging.collectAsLazyPagingItems()
+    val nowPlayingPaging = viewModel.nowPlayingMoviesPaging.collectAsLazyPagingItems()
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+        contentPadding = PaddingValues(bottom = 24.dp, top = 16.dp)
+    ) {
+        item {
+            if (trending.isEmpty()) {
+                HeroBannerSkeleton()
+            } else {
+                HeroBanner(
+                    movies = trending.take(3),
+                    onClick = { onMovieClick(it, "movie") },
+                    widthSizeClass = widthSizeClass
+                )
             }
-            item {
-                val title = stringResource(R.string.in_theaters)
-                MoviePagingRow(title, nowPlayingPaging, { onMovieClick(it, "movie") }, { onSeeAllClick("now_playing", title) })
+        }
+        item {
+            val title = stringResource(R.string.trending)
+            MoviePagingRow(title, trendingPaging, { id, type -> onMovieClick(id, type ?: "movie") }, { onSeeAllClick("trending", title, "movie") })
+        }
+        item {
+            val title = stringResource(R.string.in_theaters)
+            MoviePagingRow(title, nowPlayingPaging, { id, type -> onMovieClick(id, type ?: "movie") }, { onSeeAllClick("now_playing", title, "movie") })
+        }
+        item {
+            val title = stringResource(R.string.popular)
+            MoviePagingRow(title, popularPaging, { id, type -> onMovieClick(id, type ?: "movie") }, { onSeeAllClick("popular", title, "movie") })
+        }
+        item {
+            val title = stringResource(R.string.top_rated)
+            MoviePagingRow(title, topRatedPaging, { id, type -> onMovieClick(id, type ?: "movie") }, { onSeeAllClick("top_rated", title, "movie") })
+        }
+    }
+}
+
+@Composable
+fun TvTab(
+    viewModel: HomeViewModel,
+    onMovieClick: (Int, String?) -> Unit,
+    onSeeAllClick: (String, String, String?) -> Unit,
+    widthSizeClass: WindowWidthSizeClass
+) {
+    val trending by viewModel.trendingTvShows.collectAsState()
+    val trendingPaging = viewModel.trendingTvShowsPaging.collectAsLazyPagingItems()
+    val popularPaging = viewModel.popularTvShowsPaging.collectAsLazyPagingItems()
+    val topRatedPaging = viewModel.topRatedTvShowsPaging.collectAsLazyPagingItems()
+    val onTheAirPaging = viewModel.onTheAirTvShowsPaging.collectAsLazyPagingItems()
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+        contentPadding = PaddingValues(bottom = 24.dp, top = 16.dp)
+    ) {
+        item {
+            if (trending.isEmpty()) {
+                HeroBannerSkeleton()
+            } else {
+                HeroBanner(
+                    movies = trending.take(3),
+                    onClick = { onMovieClick(it, "tv") },
+                    widthSizeClass = widthSizeClass
+                )
             }
-            item {
-                val title = stringResource(R.string.popular)
-                MoviePagingRow(title, popularPaging, { onMovieClick(it, "movie") }, { onSeeAllClick("popular", title) })
+        }
+        item {
+            val title = stringResource(R.string.trending)
+            MoviePagingRow(title, trendingPaging, { id, type -> onMovieClick(id, type ?: "tv") }, { onSeeAllClick("trending", title, "tv") })
+        }
+        item {
+            val title = stringResource(R.string.on_air)
+            MoviePagingRow(title, onTheAirPaging, { id, type -> onMovieClick(id, type ?: "tv") }, { onSeeAllClick("now_playing", title, "tv") })
+        }
+        item {
+            val title = stringResource(R.string.popular)
+            MoviePagingRow(title, popularPaging, { id, type -> onMovieClick(id, type ?: "tv") }, { onSeeAllClick("popular", title, "tv") })
+        }
+        item {
+            val title = stringResource(R.string.top_rated)
+            MoviePagingRow(title, topRatedPaging, { id, type -> onMovieClick(id, type ?: "tv") }, { onSeeAllClick("top_rated", title, "tv") })
+        }
+    }
+}
+
+@Composable
+fun MediaTabs(
+    selectedType: HomeViewModel.MediaType,
+    onTypeSelected: (HomeViewModel.MediaType) -> Unit
+) {
+    val tabs = listOf(
+        Triple(HomeViewModel.MediaType.MOVIE, stringResource(R.string.movies), R.drawable.movie),
+        Triple(HomeViewModel.MediaType.TV, stringResource(R.string.tv_shows), R.drawable.tv)
+    )
+
+    TabRow(
+        selectedTabIndex = tabs.indexOfFirst { it.first == selectedType },
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.primary,
+        divider = {},
+        indicator = { tabPositions ->
+            val index = tabs.indexOfFirst { it.first == selectedType }
+            if (index != -1 && index < tabPositions.size) {
+                TabRowDefaults.SecondaryIndicator(
+                    Modifier.tabIndicatorOffset(tabPositions[index]),
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
-            item {
-                val title = stringResource(R.string.top_rated)
-                MoviePagingRow(title, topRatedPaging, { onMovieClick(it, "movie") }, { onSeeAllClick("top_rated", title) })
-            }
+        },
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+    ) {
+        tabs.forEach { (type, label, iconRes) ->
+            Tab(
+                selected = selectedType == type,
+                onClick = { onTypeSelected(type) },
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painter = painterResource(id = iconRes),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                }
+            )
         }
     }
 }
@@ -219,7 +400,6 @@ fun HeroBanner(
                             text = movie.displayTitle,
                             style = MaterialTheme.typography.headlineSmall.copy(
                                 color = Color.White,
-                                fontWeight = FontWeight.Bold,
                                 shadow = Shadow(
                                     color = Color.Black.copy(alpha = 0.5f),
                                     offset = Offset(2f, 2f),
@@ -239,13 +419,12 @@ fun HeroBanner(
                                 imageVector = Icons.Rounded.Star,
                                 contentDescription = null,
                                 modifier = Modifier.size(18.dp),
-                                tint = Color.White // Keeping it white for better visibility on dark banner
+                                tint = Gold
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = String.format(Locale.US, "%.1f", movie.voteAverage ?: 0.0),
                                 style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold,
                                     color = Color.White,
                                     shadow = Shadow(
                                         color = Color.Black.copy(alpha = 0.5f),
@@ -276,7 +455,6 @@ fun HeroBanner(
                                 style = MaterialTheme.typography.labelMedium.copy(
                                     color = Color.White.copy(alpha = 0.8f),
                                     lineHeight = 18.sp,
-                                    fontWeight = FontWeight.Medium,
                                     shadow = Shadow(
                                         color = Color.Black.copy(alpha = 0.5f),
                                         offset = Offset(2f, 2f),
@@ -309,7 +487,6 @@ fun HeroBanner(
                                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                                             style = MaterialTheme.typography.labelMedium.copy(
                                                 color = Color.White,
-                                                fontWeight = FontWeight.SemiBold,
                                                 shadow = Shadow(
                                                     color = Color.Black.copy(alpha = 0.5f),
                                                     offset = Offset(2f, 2f),

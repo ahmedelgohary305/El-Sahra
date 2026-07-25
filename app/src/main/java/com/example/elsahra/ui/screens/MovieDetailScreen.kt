@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -88,6 +89,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.elsahra.R
+import com.example.elsahra.ui.theme.Gold
 import com.example.elsahra.data.model.Cast
 import com.example.elsahra.data.model.Crew
 import com.example.elsahra.data.model.Episode
@@ -97,6 +99,7 @@ import com.example.elsahra.data.model.Review
 import com.example.elsahra.data.model.Season
 import com.example.elsahra.data.model.TvShowDetails
 import com.example.elsahra.ui.components.MoviesGrid
+import com.example.elsahra.ui.components.MovieDetailSkeleton
 import com.example.elsahra.ui.components.VideoWebViewPlayer
 import com.example.elsahra.util.FormatUtils
 import java.util.Locale
@@ -149,7 +152,7 @@ fun MovieDetailScreen(
         Box(modifier = Modifier.fillMaxSize()) {
             when {
                 isLoading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    MovieDetailSkeleton()
                 }
                 error != null -> {
                     Column(
@@ -225,8 +228,7 @@ fun MovieDetailScreen(
                                     text = { 
                                         Text(
                                             text = tabTitle,
-                                            style = MaterialTheme.typography.titleSmall.copy(fontSize = 12.sp),
-                                            fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
+                                            style = MaterialTheme.typography.labelLarge,
                                             maxLines = 1,
                                             overflow = TextOverflow.Visible,
                                             softWrap = false
@@ -268,7 +270,8 @@ fun MovieDetailScreen(
                                     MoviesGrid(
                                         movies = recommendations,
                                         onMovieClick = { id, type -> onMovieClick(id, type ?: mediaType) },
-                                        columns = GridCells.Adaptive(minSize = 130.dp)
+                                        columns = GridCells.Adaptive(minSize = 130.dp),
+                                        isLoading = isLoading
                                     )
                                 }
                                 aboutLabel -> {
@@ -375,9 +378,8 @@ fun MediaHeader(
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.headlineMedium.copy(
+                style = MaterialTheme.typography.headlineLarge.copy(
                     color = Color.White,
-                    fontWeight = FontWeight.Bold,
                     shadow = Shadow(
                         color = Color.Black.copy(alpha = 0.5f),
                         offset = Offset(2f, 2f),
@@ -399,15 +401,14 @@ fun MediaHeader(
                 Icon(
                     imageVector = Icons.Rounded.Star,
                     contentDescription = null,
-                    tint = Color(0xFFFFD700),
+                    tint = Gold,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = String.format(Locale.US, "%.1f", voteAverage),
                     style = MaterialTheme.typography.titleSmall.copy(
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
+                        color = Color.White
                     )
                 )
                 Text(
@@ -471,10 +472,17 @@ fun MediaHeader(
                     contentPadding = PaddingValues(horizontal = 8.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.play),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = stringResource(R.string.watch),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelLarge
                     )
                 }
 
@@ -486,10 +494,15 @@ fun MediaHeader(
                     border = BorderStroke(1.dp, Color.White),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
                 ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.trailer),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = stringResource(R.string.watch_trailer),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
+                        style = MaterialTheme.typography.labelLarge
                     )
                 }
             }
@@ -516,8 +529,7 @@ fun InfoItem(
             Text(
                 text = text, 
                 style = MaterialTheme.typography.labelSmall.copy(
-                    color = Color.White.copy(alpha = 0.9f),
-                    fontWeight = FontWeight.Medium
+                    color = Color.White.copy(alpha = 0.9f)
                 )
             )
         }
@@ -666,18 +678,16 @@ fun AboutSection(
                 infoItems.chunked(2).forEachIndexed { rowIndex, rowItems ->
                     Row(modifier = Modifier.fillMaxWidth()) {
                         rowItems.forEachIndexed { index, item ->
-                            Column(modifier = Modifier.weight(1f).padding(vertical = 12.dp)) {
+                                Column(modifier = Modifier.weight(1f).padding(vertical = 12.dp)) {
                                 Text(
                                     text = stringResource(item.first),
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    fontWeight = FontWeight.Bold
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = item.second,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium
+                                    style = MaterialTheme.typography.bodyMedium
                                 )
                             }
                             if (index == 0 && rowItems.size > 1) {
@@ -729,10 +739,7 @@ fun AboutSection(
 fun SectionHeader(title: String, modifier: Modifier = Modifier) {
     Text(
         text = title,
-        style = MaterialTheme.typography.titleLarge.copy(
-            fontWeight = FontWeight.ExtraBold,
-            letterSpacing = 0.5.sp
-        ),
+        style = MaterialTheme.typography.headlineSmall,
         modifier = modifier.padding(bottom = 12.dp)
     )
 }
@@ -743,8 +750,7 @@ fun CrewInfoItem(label: String, value: String, modifier: Modifier = Modifier) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold
+            color = MaterialTheme.colorScheme.primary
         )
         Text(
             text = value,
@@ -800,7 +806,6 @@ fun CastItem(cast: Cast, modifier: Modifier = Modifier) {
                 Text(
                     text = cast.name,
                     style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     lineHeight = 16.sp
@@ -860,10 +865,10 @@ fun ReviewItem(review: Review) {
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = review.author, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                Text(text = review.author, style = MaterialTheme.typography.titleMedium)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Star, contentDescription = null, tint = Color.Yellow, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.Star, contentDescription = null, tint = Gold, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(text = (review.authorDetails?.rating ?: 0.0).toString(), style = MaterialTheme.typography.bodyMedium)
             }
@@ -937,10 +942,7 @@ fun EpisodeItem(episode: Episode, onPlayClick: () -> Unit) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = episode.name,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            lineHeight = 20.sp
-                        ),
+                        style = MaterialTheme.typography.titleMedium,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -1003,7 +1005,7 @@ fun SeasonSelector(seasons: List<Season>, onSeasonSelected: (Int) -> Unit) {
         ) {
             Text(
                 text = selectedSeason?.name ?: "Select Season",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                style = MaterialTheme.typography.titleMedium
             )
             Icon(
                 imageVector = Icons.Default.ArrowDropDown,

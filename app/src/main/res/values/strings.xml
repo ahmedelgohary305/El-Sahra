@@ -2,6 +2,10 @@
     <string name="app_name">El Sahra</string>
     <string name="recommended">Recommended for you</string>
     <string name="in_theaters">In Theaters</string>
+    <string name="on_air">On Air</string>
+    <string name="movies">Movies</string>
+    <string name="tv_shows">TV Shows</string>
+    <string name="anime">Anime</string>
     <string name="trending">Trending Now</string>
     <string name="popular">Popular</string>
     <string name="top_rated">Top Rated</string>

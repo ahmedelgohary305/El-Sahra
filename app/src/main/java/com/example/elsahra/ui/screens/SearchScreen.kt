@@ -16,7 +16,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
@@ -65,44 +66,68 @@ fun SearchScreen(
         viewModel.loadInitialData()
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Text(
-                        text = if (query.isEmpty()) stringResource(R.string.top_searches) else stringResource(R.string.search), 
-                        fontWeight = FontWeight.Bold
-                    ) 
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding)
+                .statusBarsPadding()
         ) {
+            // Custom Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.back)
+                    )
+                }
+                Text(
+                    text = if (query.isEmpty()) stringResource(R.string.top_searches) else stringResource(R.string.search),
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+
+            // Enhanced Search Bar
             OutlinedTextField(
                 value = query,
                 onValueChange = { viewModel.onQueryChanged(it) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text(stringResource(R.string.something)) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                placeholder = { 
+                    Text(
+                        text = stringResource(R.string.something),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    ) 
+                },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(id = R.drawable.search),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
                         IconButton(onClick = { viewModel.onQueryChanged("") }) {
-                            Icon(Icons.Default.Close, contentDescription = null)
+                            Icon(
+                                imageVector = Icons.Default.Close, 
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
                 },
-                shape = RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(16.dp),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(
@@ -110,8 +135,12 @@ fun SearchScreen(
                 ),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                )
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                    cursorColor = MaterialTheme.colorScheme.primary
+                ),
+                textStyle = MaterialTheme.typography.bodyLarge
             )
 
             if (query.isEmpty()) {
@@ -138,22 +167,42 @@ fun SearchScreen(
                         FilterChip(
                             selected = selectedGenre == null,
                             onClick = { viewModel.selectGenre(null) },
-                            label = { Text(stringResource(R.string.all)) }
+                            label = { Text(stringResource(R.string.all)) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = selectedGenre == null,
+                                borderColor = MaterialTheme.colorScheme.outlineVariant,
+                                selectedBorderColor = Color.Transparent
+                            ),
+                            shape = RoundedCornerShape(12.dp)
                         )
                     }
                     items(genres) { genre ->
                         FilterChip(
                             selected = selectedGenre == genre.id,
                             onClick = { viewModel.selectGenre(genre.id) },
-                            label = { Text(genre.name) }
+                            label = { Text(genre.name) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = selectedGenre == genre.id,
+                                borderColor = MaterialTheme.colorScheme.outlineVariant,
+                                selectedBorderColor = Color.Transparent
+                            ),
+                            shape = RoundedCornerShape(12.dp)
                         )
                     }
                 }
 
                 Box(modifier = Modifier.fillMaxSize()) {
-                    if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                    } else if (searchResults.isEmpty()) {
+                    if (searchResults.isEmpty() && !isLoading) {
                         EmptySearchState(modifier = Modifier.align(Alignment.Center))
                     } else {
                         MoviesGrid(
@@ -162,7 +211,8 @@ fun SearchScreen(
                                 viewModel.onSearchTriggered(query)
                                 onMovieClick(movieId, mediaType)
                             },
-                            columns = GridCells.Fixed(columns)
+                            columns = GridCells.Fixed(columns),
+                            isLoading = isLoading
                         )
                     }
                 }
@@ -195,7 +245,7 @@ fun SearchInitialState(
                     )
                     Text(
                         text = stringResource(R.string.clear_all),
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.clickable { onClearAll() }
                     )
@@ -212,15 +262,30 @@ fun SearchInitialState(
                         AssistChip(
                             onClick = { onRecentClick(search) },
                             label = { Text(search) },
-                            leadingIcon = { Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                            trailingIcon = { 
+                            leadingIcon = { 
                                 Icon(
-                                    Icons.Default.Close, 
+                                    imageVector = Icons.Default.History, 
                                     contentDescription = null, 
-                                    modifier = Modifier.size(16.dp).clickable { onRemoveRecent(search) }
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.primary
                                 ) 
                             },
-                            shape = CircleShape
+                            trailingIcon = { 
+                                Icon(
+                                    imageVector = Icons.Default.Close, 
+                                    contentDescription = null, 
+                                    modifier = Modifier.size(16.dp).clickable { onRemoveRecent(search) },
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                ) 
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            border = AssistChipDefaults.assistChipBorder(
+                                enabled = true,
+                                borderColor = MaterialTheme.colorScheme.outlineVariant
+                            ),
+                            colors = AssistChipDefaults.assistChipColors(
+                                labelColor = MaterialTheme.colorScheme.onSurface
+                            )
                         )
                     }
                 }
@@ -244,12 +309,20 @@ fun EmptySearchState(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(
-            Icons.Default.SearchOff, 
-            contentDescription = null, 
-            modifier = Modifier.size(80.dp),
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
-        )
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+            modifier = Modifier.size(120.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Default.SearchOff, 
+                    contentDescription = null, 
+                    modifier = Modifier.size(60.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = stringResource(R.string.sorry_no_movie),
@@ -260,7 +333,7 @@ fun EmptySearchState(modifier: Modifier = Modifier) {
         Text(
             text = stringResource(R.string.try_again),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
             textAlign = TextAlign.Center
         )
     }

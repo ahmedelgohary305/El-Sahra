@@ -2,6 +2,10 @@
     <string name="app_name">السهرة</string>
     <string name="recommended">موصى به لك</string>
     <string name="in_theaters">في السينما</string>
+    <string name="on_air">يعرض الآن</string>
+    <string name="movies">أفلام</string>
+    <string name="tv_shows">مسلسلات</string>
+    <string name="anime">أنمي</string>
     <string name="trending">الأفلام الرائجة</string>
     <string name="popular">شائع في مصر</string>
     <string name="top_rated">الأعلى تقييماً</string>

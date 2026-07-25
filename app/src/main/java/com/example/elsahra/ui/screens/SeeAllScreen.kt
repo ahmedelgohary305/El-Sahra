@@ -29,6 +29,7 @@ import com.example.elsahra.ui.components.MoviesPagingGrid
 fun SeeAllScreen(
     category: String,
     title: String,
+    mediaType: String? = "movie",
     onBack: () -> Unit,
     onMovieClick: (Int, String?) -> Unit,
     viewModel: SeeAllViewModel
@@ -41,8 +42,8 @@ fun SeeAllScreen(
     var showSortSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
 
-    LaunchedEffect(category) {
-        viewModel.setCategory(category)
+    LaunchedEffect(category, mediaType) {
+        viewModel.setCategory(category, mediaType)
     }
 
     Scaffold(
@@ -51,9 +52,7 @@ fun SeeAllScreen(
                 title = {
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold
-                        )
+                        style = MaterialTheme.typography.titleLarge
                     )
                 },
                 navigationIcon = {
@@ -116,9 +115,6 @@ fun SeeAllScreen(
                 modifier = Modifier.weight(1f)
             ) {
                 when {
-                    movies.loadState.refresh is LoadState.Loading -> {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                    }
                     movies.loadState.refresh is LoadState.Error -> {
                         Column(
                             modifier = Modifier.align(Alignment.Center),
@@ -140,7 +136,7 @@ fun SeeAllScreen(
                     else -> {
                         MoviesPagingGrid(
                             movies = movies,
-                            onMovieClick = { movieId, mediaType -> onMovieClick(movieId, mediaType) },
+                            onMovieClick = { movieId, type -> onMovieClick(movieId, type ?: mediaType) },
                             columns = GridCells.Adaptive(150.dp)
                         )
                     }

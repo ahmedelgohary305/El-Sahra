@@ -11,3 +11,5 @@ val DarkSurface = Color(0xFF1E293B) // Slate 800
 
 val LightBackground = Color(0xFFF8FAFC) // Slate 50
 val LightSurface = Color(0xFFFFFFFF)
+
+val Gold = Color(0xFFFFD700)

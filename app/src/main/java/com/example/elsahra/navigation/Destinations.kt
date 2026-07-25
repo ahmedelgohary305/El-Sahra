@@ -13,5 +13,5 @@ sealed interface Destination {
     @Serializable
     data object Settings : Destination
     @Serializable
-    data class SeeAll(val category: String, val title: String) : Destination
+    data class SeeAll(val category: String, val title: String, val mediaType: String? = "movie") : Destination
 }
