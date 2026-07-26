@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -92,15 +94,27 @@ fun MovieItem(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(6.dp)
-                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
-                        .size(36.dp)
+                        .size(44.dp)
                 ) {
-                    Icon(
-                        painter = if (isInWatchlist) painterResource(id = R.drawable.bookmark_filled) else painterResource(id = R.drawable.bookmark),
-                        contentDescription = if (isInWatchlist) "Remove from watchlist" else "Add to watchlist",
-                        tint = if (isInWatchlist) Gold else Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        // This blurred copy follows the bookmark's vector paths, unlike
+                        // an elevation shadow which is drawn as a circle around the button.
+                        Icon(
+                            painter = if (isInWatchlist) painterResource(id = R.drawable.bookmark_filled) else painterResource(id = R.drawable.bookmark),
+                            contentDescription = null,
+                            tint = Color.Black.copy(alpha = 0.65f),
+                            modifier = Modifier
+                                .size(28.dp)
+                                .offset(x = 1.dp, y = 2.dp)
+                                .blur(2.dp)
+                        )
+                        Icon(
+                            painter = if (isInWatchlist) painterResource(id = R.drawable.bookmark_filled) else painterResource(id = R.drawable.bookmark),
+                            contentDescription = if (isInWatchlist) "Remove from watchlist" else "Add to watchlist",
+                            tint = if (isInWatchlist) Gold else Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                 }
             }
         }
