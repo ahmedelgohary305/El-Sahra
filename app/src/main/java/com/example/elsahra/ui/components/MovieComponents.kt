@@ -23,13 +23,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +45,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.LazyPagingItems
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.elsahra.R
 import com.example.elsahra.data.model.Movie
@@ -48,13 +54,20 @@ import com.example.elsahra.util.FormatUtils
 import java.util.Locale
 
 import com.example.elsahra.ui.theme.Gold
+import com.example.elsahra.ui.screens.WatchlistViewModel
 
 @Composable
 fun MovieItem(
     movie: Movie,
     onClick: (Int) -> Unit,
+    fallbackMediaType: String = "movie",
     modifier: Modifier = Modifier
 ) {
+    val watchlistViewModel: WatchlistViewModel = hiltViewModel()
+    val movieIds by watchlistViewModel.movieIds.collectAsStateWithLifecycle()
+    val tvIds by watchlistViewModel.tvIds.collectAsStateWithLifecycle()
+    val mediaType = movie.mediaType ?: fallbackMediaType
+    val isInWatchlist = if (mediaType == "tv") movie.id in tvIds else movie.id in movieIds
     Column(
         modifier = modifier
             .clickable { movie.id.let(onClick) }
@@ -73,6 +86,21 @@ fun MovieItem(
                         contentDescription = movie.displayTitle,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.FillBounds
+                    )
+                }
+                IconButton(
+                    onClick = { watchlistViewModel.toggle(movie, mediaType) },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(6.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(50))
+                        .size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isInWatchlist) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
+                        contentDescription = if (isInWatchlist) "Remove from watchlist" else "Add to watchlist",
+                        tint = if (isInWatchlist) Gold else Color.White,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
@@ -132,6 +160,7 @@ fun MoviePagingRow(
     movies: LazyPagingItems<Movie>,
     onMovieClick: (Int, String?) -> Unit,
     onSeeAllClick: () -> Unit,
+    fallbackMediaType: String = "movie",
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -185,6 +214,7 @@ fun MoviePagingRow(
                         MovieItem(
                             movie = movie,
                             onClick = { onMovieClick(it, movie.mediaType) },
+                            fallbackMediaType = fallbackMediaType,
                             modifier = Modifier.width(140.dp)
                         )
                     }
@@ -218,6 +248,7 @@ fun MoviesRow(
     movies: List<Movie>,
     onMovieClick: (Int, String?) -> Unit,
     onSeeAllClick: (() -> Unit)? = null,
+    fallbackMediaType: String = "movie",
     modifier: Modifier = Modifier,
     isLoading: Boolean = false
 ) {
@@ -269,6 +300,7 @@ fun MoviesRow(
                     MovieItem(
                         movie = movie,
                         onClick = { onMovieClick(it, movie.mediaType) },
+                        fallbackMediaType = fallbackMediaType,
                         modifier = Modifier.width(140.dp)
                     )
                 }
@@ -283,7 +315,8 @@ fun MoviesGrid(
     onMovieClick: (Int, String?) -> Unit,
     modifier: Modifier = Modifier,
     columns: GridCells = GridCells.Fixed(2),
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    fallbackMediaType: String = "movie"
 ) {
     if (isLoading) {
         MoviesGridSkeleton(modifier = modifier, columns = columns)
@@ -299,6 +332,7 @@ fun MoviesGrid(
                 MovieItem(
                     movie = movie,
                     onClick = { onMovieClick(it, movie.mediaType) },
+                    fallbackMediaType = fallbackMediaType,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -311,7 +345,8 @@ fun MoviesPagingGrid(
     movies: LazyPagingItems<Movie>,
     onMovieClick: (Int, String?) -> Unit,
     modifier: Modifier = Modifier,
-    columns: GridCells = GridCells.Fixed(2)
+    columns: GridCells = GridCells.Fixed(2),
+    fallbackMediaType: String = "movie"
 ) {
     val showInitialSkeleton = movies.loadState.refresh is LoadState.Loading ||
         (movies.loadState.refresh is LoadState.Error && movies.itemCount == 0)
@@ -330,8 +365,9 @@ fun MoviesPagingGrid(
                 val movie = movies[index]
                 if (movie != null) {
                     MovieItem(
-                        movie = movie,
-                        onClick = { onMovieClick(it, movie.mediaType) },
+                    movie = movie,
+                    onClick = { onMovieClick(it, movie.mediaType) },
+                    fallbackMediaType = fallbackMediaType,
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

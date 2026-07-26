@@ -9,6 +9,8 @@ sealed interface Destination {
     @Serializable
     data object Search : Destination
     @Serializable
+    data object Watchlist : Destination
+    @Serializable
     data class Details(val movieId: Int, val mediaType: String? = "movie") : Destination
     @Serializable
     data object Settings : Destination

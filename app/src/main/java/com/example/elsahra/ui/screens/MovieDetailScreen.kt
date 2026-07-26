@@ -41,6 +41,8 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.rounded.Bookmark
+import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -87,6 +89,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.example.elsahra.R
 import com.example.elsahra.ui.theme.Gold
@@ -111,7 +114,8 @@ fun MovieDetailScreen(
     mediaType: String? = "movie",
     onBack: () -> Unit,
     onMovieClick: (Int, String?) -> Unit,
-    viewModel: DetailsViewModel
+    viewModel: DetailsViewModel,
+    watchlistViewModel: WatchlistViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val locale = Locale.getDefault()
@@ -132,6 +136,8 @@ fun MovieDetailScreen(
     val trailerKey by viewModel.trailerKey.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val error by viewModel.error.collectAsStateWithLifecycle()
+    val movieIds by watchlistViewModel.movieIds.collectAsStateWithLifecycle()
+    val tvIds by watchlistViewModel.tvIds.collectAsStateWithLifecycle()
 
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val episodesLabel = stringResource(R.string.episodes)
@@ -174,6 +180,18 @@ fun MovieDetailScreen(
                     val releaseDate = currentMovie?.releaseDate ?: currentTvShow?.firstAirDate ?: ""
                     val year = if (releaseDate.length >= 4) releaseDate.substring(0, 4) else ""
                     val genres = (currentMovie?.genres?.joinToString { it.name } ?: currentTvShow?.genres?.joinToString { it.name } ?: "")
+                    val currentMediaType = if (currentTvShow != null) "tv" else "movie"
+                    val watchlistMovie = Movie(
+                        id = currentMovie?.id ?: currentTvShow!!.id,
+                        originalTitle = currentMovie?.originalTitle ?: currentMovie?.title,
+                        name = currentTvShow?.name,
+                        overview = currentMovie?.overview ?: currentTvShow?.overview,
+                        posterPath = currentMovie?.posterPath ?: currentTvShow?.posterPath,
+                        voteAverage = currentMovie?.voteAverage ?: currentTvShow?.voteAverage,
+                        voteCount = currentMovie?.voteCount ?: currentTvShow?.voteCount,
+                        mediaType = currentMediaType
+                    )
+                    val isInWatchlist = if (currentMediaType == "tv") watchlistMovie.id in tvIds else watchlistMovie.id in movieIds
 
                     Column(
                         modifier = Modifier
@@ -193,6 +211,8 @@ fun MovieDetailScreen(
                             voteAverage = currentMovie?.voteAverage ?: currentTvShow?.voteAverage ?: 0.0,
                             voteCount = currentMovie?.voteCount ?: currentTvShow?.voteCount ?: 0,
                             onBack = onBack,
+                            isInWatchlist = isInWatchlist,
+                            onWatchlistClick = { watchlistViewModel.toggle(watchlistMovie, currentMediaType) },
                             onPlayClick = {
                                 selectedTabIndex = 0
                                 if (currentMovie != null) {
@@ -273,7 +293,8 @@ fun MovieDetailScreen(
                                         movies = recommendations,
                                         onMovieClick = { id, type -> onMovieClick(id, type ?: mediaType) },
                                         columns = GridCells.Adaptive(minSize = 130.dp),
-                                        isLoading = isLoading
+                                        isLoading = isLoading,
+                                        fallbackMediaType = mediaType ?: "movie"
                                     )
                                 }
                                 aboutLabel -> {
@@ -326,6 +347,8 @@ fun MediaHeader(
     voteAverage: Double,
     voteCount: Int,
     onBack: () -> Unit,
+    isInWatchlist: Boolean,
+    onWatchlistClick: () -> Unit,
     onPlayClick: () -> Unit,
     onTrailerClick: () -> Unit
 ) {
@@ -350,13 +373,23 @@ fun MediaHeader(
         // Top Buttons
         Row(
             modifier = Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.Start
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
             IconButton(
                 onClick = onBack,
                 modifier = Modifier.background(Color.Black.copy(alpha = 0.3f), CircleShape)
             ) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
+            }
+            IconButton(
+                onClick = onWatchlistClick,
+                modifier = Modifier.background(Color.Black.copy(alpha = 0.3f), CircleShape)
+            ) {
+                Icon(
+                    imageVector = if (isInWatchlist) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
+                    contentDescription = if (isInWatchlist) "Remove from watchlist" else "Add to watchlist",
+                    tint = if (isInWatchlist) Gold else Color.White
+                )
             }
         }
 

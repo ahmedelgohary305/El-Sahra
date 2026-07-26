@@ -25,6 +25,7 @@ fun AppNavigation(
             HomeScreen(
                 onMovieClick = { id: Int, type: String? -> navController.navigate(Destination.Details(id, type)) },
                 onSearchClick = { navController.navigate(Destination.Search) },
+                onWatchlistClick = { navController.navigate(Destination.Watchlist) },
                 onSettingsClick = { navController.navigate(Destination.Settings) },
                 onSeeAllClick = { category, title, mediaType -> 
                     navController.navigate(Destination.SeeAll(category, title, mediaType)) 
@@ -37,6 +38,12 @@ fun AppNavigation(
                 onBack = { navController.popBackStack() },
                 onMovieClick = { id: Int, type: String? -> navController.navigate(Destination.Details(id, type)) },
                 viewModel = hiltViewModel()
+            )
+        }
+        composable<Destination.Watchlist> {
+            WatchlistScreen(
+                onBack = { navController.popBackStack() },
+                onMovieClick = { id, type -> navController.navigate(Destination.Details(id, type)) }
             )
         }
         composable<Destination.SeeAll> { backStackEntry ->

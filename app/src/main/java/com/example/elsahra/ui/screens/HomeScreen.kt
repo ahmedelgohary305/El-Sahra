@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -78,6 +79,7 @@ import java.util.Locale
 fun HomeScreen(
     onMovieClick: (Int, String?) -> Unit,
     onSearchClick: () -> Unit,
+    onWatchlistClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onSeeAllClick: (String, String, String?) -> Unit,
     viewModel: HomeViewModel // Provided via hiltViewModel() in AppNavigation
@@ -143,6 +145,13 @@ fun HomeScreen(
                             Icon(
                                 painter = painterResource(id = R.drawable.search),
                                 contentDescription = "Search",
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        IconButton(onClick = onWatchlistClick) {
+                            Icon(
+                                imageVector = Icons.Rounded.BookmarkBorder,
+                                contentDescription = stringResource(R.string.watchlist),
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -264,19 +273,19 @@ fun TvTab(
         }
         item {
             val title = stringResource(R.string.trending)
-            MoviePagingRow(title, trendingPaging, { id, type -> onMovieClick(id, type ?: "tv") }, { onSeeAllClick("trending", title, "tv") })
+            MoviePagingRow(title, trendingPaging, { id, type -> onMovieClick(id, type ?: "tv") }, { onSeeAllClick("trending", title, "tv") }, fallbackMediaType = "tv")
         }
         item {
             val title = stringResource(R.string.on_air)
-            MoviePagingRow(title, onTheAirPaging, { id, type -> onMovieClick(id, type ?: "tv") }, { onSeeAllClick("now_playing", title, "tv") })
+            MoviePagingRow(title, onTheAirPaging, { id, type -> onMovieClick(id, type ?: "tv") }, { onSeeAllClick("now_playing", title, "tv") }, fallbackMediaType = "tv")
         }
         item {
             val title = stringResource(R.string.popular)
-            MoviePagingRow(title, popularPaging, { id, type -> onMovieClick(id, type ?: "tv") }, { onSeeAllClick("popular", title, "tv") })
+            MoviePagingRow(title, popularPaging, { id, type -> onMovieClick(id, type ?: "tv") }, { onSeeAllClick("popular", title, "tv") }, fallbackMediaType = "tv")
         }
         item {
             val title = stringResource(R.string.top_rated)
-            MoviePagingRow(title, topRatedPaging, { id, type -> onMovieClick(id, type ?: "tv") }, { onSeeAllClick("top_rated", title, "tv") })
+            MoviePagingRow(title, topRatedPaging, { id, type -> onMovieClick(id, type ?: "tv") }, { onSeeAllClick("top_rated", title, "tv") }, fallbackMediaType = "tv")
         }
     }
 }

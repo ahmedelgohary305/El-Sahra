@@ -137,7 +137,8 @@ fun SeeAllScreen(
                         MoviesPagingGrid(
                             movies = movies,
                             onMovieClick = { movieId, type -> onMovieClick(movieId, type ?: mediaType) },
-                            columns = GridCells.Adaptive(150.dp)
+                            columns = GridCells.Adaptive(150.dp),
+                            fallbackMediaType = mediaType ?: "movie"
                         )
                     }
                     movies.loadState.refresh is LoadState.Error -> {
@@ -162,7 +163,8 @@ fun SeeAllScreen(
                         MoviesPagingGrid(
                             movies = movies,
                             onMovieClick = { movieId, type -> onMovieClick(movieId, type ?: mediaType) },
-                            columns = GridCells.Adaptive(150.dp)
+                            columns = GridCells.Adaptive(150.dp),
+                            fallbackMediaType = mediaType ?: "movie"
                         )
                     }
                 }
