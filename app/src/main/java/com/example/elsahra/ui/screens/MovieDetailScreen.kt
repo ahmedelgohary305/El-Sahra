@@ -41,8 +41,6 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.rounded.Bookmark
-import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -386,9 +384,10 @@ fun MediaHeader(
                 modifier = Modifier.background(Color.Black.copy(alpha = 0.3f), CircleShape)
             ) {
                 Icon(
-                    imageVector = if (isInWatchlist) Icons.Rounded.Bookmark else Icons.Rounded.BookmarkBorder,
+                    painter = if (isInWatchlist) painterResource(id = R.drawable.bookmark_filled) else painterResource(id = R.drawable.bookmark),
                     contentDescription = if (isInWatchlist) "Remove from watchlist" else "Add to watchlist",
-                    tint = if (isInWatchlist) Gold else Color.White
+                    tint = if (isInWatchlist) Gold else Color.White,
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }

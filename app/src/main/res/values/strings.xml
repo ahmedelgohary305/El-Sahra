@@ -65,4 +65,5 @@
     <string name="watchlist">Watchlist</string>
     <string name="empty_movie_watchlist">Your movie watchlist is empty</string>
     <string name="empty_tv_watchlist">Your TV show watchlist is empty</string>
+    <string name="watchlist_description">Explore movies and TV shows and add them to your watchlist to keep track of what you want to watch.</string>
 </resources>

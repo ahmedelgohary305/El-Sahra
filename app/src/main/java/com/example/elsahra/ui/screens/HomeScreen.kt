@@ -25,7 +25,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material.icons.rounded.BookmarkBorder
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -150,7 +149,7 @@ fun HomeScreen(
                         }
                         IconButton(onClick = onWatchlistClick) {
                             Icon(
-                                imageVector = Icons.Rounded.BookmarkBorder,
+                                painter = painterResource(id = R.drawable.bookmark),
                                 contentDescription = stringResource(R.string.watchlist),
                                 modifier = Modifier.size(24.dp)
                             )

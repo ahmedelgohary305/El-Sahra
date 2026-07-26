@@ -62,4 +62,8 @@
     <string name="production">الإنتاج</string>
     <string name="genres">التصنيفات</string>
     <string name="classification">التصنيف العمري</string>
+    <string name="watchlist">قائمة المشاهدة</string>
+    <string name="empty_movie_watchlist">قائمة الأفلام فارغة</string>
+    <string name="empty_tv_watchlist">قائمة المسلسلات فارغة</string>
+    <string name="watchlist_description">استكشف الأفلام والمسلسلات وأضفها إلى قائمة المشاهدة الخاصة بك لتتبع ما تريد مشاهدته.</string>
 </resources>
