@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -73,6 +74,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -374,21 +376,40 @@ fun MediaHeader(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             IconButton(
-                onClick = onBack,
-                modifier = Modifier.background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                onClick = onBack
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = Color.White)
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = null,
+                        tint = Color.Black.copy(alpha = 0.65f),
+                        modifier = Modifier.size(28.dp).offset(x = 1.dp, y = 2.dp).blur(2.dp)
+                    )
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = stringResource(R.string.back),
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
             IconButton(
-                onClick = onWatchlistClick,
-                modifier = Modifier.background(Color.Black.copy(alpha = 0.3f), CircleShape)
+                onClick = onWatchlistClick
             ) {
-                Icon(
-                    painter = if (isInWatchlist) painterResource(id = R.drawable.bookmark_filled) else painterResource(id = R.drawable.bookmark),
-                    contentDescription = if (isInWatchlist) "Remove from watchlist" else "Add to watchlist",
-                    tint = if (isInWatchlist) Gold else Color.White,
-                    modifier = Modifier.size(24.dp)
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        painter = if (isInWatchlist) painterResource(id = R.drawable.bookmark_filled) else painterResource(id = R.drawable.bookmark),
+                        contentDescription = null,
+                        tint = Color.Black.copy(alpha = 0.65f),
+                        modifier = Modifier.size(28.dp).offset(x = 1.dp, y = 2.dp).blur(2.dp)
+                    )
+                    Icon(
+                        painter = if (isInWatchlist) painterResource(id = R.drawable.bookmark_filled) else painterResource(id = R.drawable.bookmark),
+                        contentDescription = if (isInWatchlist) "Remove from watchlist" else "Add to watchlist",
+                        tint = if (isInWatchlist) Gold else Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
         }
 

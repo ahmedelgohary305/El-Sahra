@@ -93,7 +93,7 @@ fun MovieItem(
                     onClick = { watchlistViewModel.toggle(movie, mediaType) },
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(6.dp)
+                        .padding(top = 2.dp, end = 2.dp)
                         .size(44.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {

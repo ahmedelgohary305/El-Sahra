@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -50,6 +51,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -65,11 +67,14 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.elsahra.R
 import com.example.elsahra.ui.theme.Gold
 import com.example.elsahra.ui.components.MoviePagingRow
 import com.example.elsahra.ui.components.HeroBannerSkeleton
+import com.example.elsahra.ui.screens.WatchlistViewModel
 import com.example.elsahra.util.FormatUtils
 import java.util.Locale
 
@@ -218,7 +223,8 @@ fun MovieTab(
                 HeroBanner(
                     movies = trending.take(3),
                     onClick = { onMovieClick(it, "movie") },
-                    widthSizeClass = widthSizeClass
+                    widthSizeClass = widthSizeClass,
+                    fallbackMediaType = "movie"
                 )
             }
         }
@@ -266,7 +272,8 @@ fun TvTab(
                 HeroBanner(
                     movies = trending.take(3),
                     onClick = { onMovieClick(it, "tv") },
-                    widthSizeClass = widthSizeClass
+                    widthSizeClass = widthSizeClass,
+                    fallbackMediaType = "tv"
                 )
             }
         }
@@ -343,10 +350,14 @@ fun MediaTabs(
 fun HeroBanner(
     movies: List<com.example.elsahra.data.model.Movie>,
     onClick: (Int) -> Unit,
-    widthSizeClass: WindowWidthSizeClass
+    widthSizeClass: WindowWidthSizeClass,
+    fallbackMediaType: String = "movie",
+    watchlistViewModel: WatchlistViewModel = hiltViewModel()
 ) {
     if (movies.isEmpty()) return
 
+    val movieIds by watchlistViewModel.movieIds.collectAsStateWithLifecycle()
+    val tvIds by watchlistViewModel.tvIds.collectAsStateWithLifecycle()
     val pagerState = rememberPagerState(pageCount = { movies.size })
     val bannerHeight = if (widthSizeClass == WindowWidthSizeClass.Compact) 220.dp else 400.dp
 
@@ -359,6 +370,8 @@ fun HeroBanner(
             modifier = Modifier.fillMaxWidth()
         ) { page ->
             val movie = movies[page]
+            val mediaType = movie.mediaType ?: fallbackMediaType
+            val isInWatchlist = if (mediaType == "tv") movie.id in tvIds else movie.id in movieIds
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -396,6 +409,29 @@ fun HeroBanner(
                                 )
                             )
                     )
+
+                    IconButton(
+                        onClick = { watchlistViewModel.toggle(movie, mediaType) },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(top = 8.dp, end = 8.dp)
+                            .size(44.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                painter = if (isInWatchlist) painterResource(R.drawable.bookmark_filled) else painterResource(R.drawable.bookmark),
+                                contentDescription = null,
+                                tint = Color.Black.copy(alpha = 0.65f),
+                                modifier = Modifier.size(28.dp).offset(x = 1.dp, y = 2.dp).blur(2.dp)
+                            )
+                            Icon(
+                                painter = if (isInWatchlist) painterResource(R.drawable.bookmark_filled) else painterResource(R.drawable.bookmark),
+                                contentDescription = if (isInWatchlist) "Remove from watchlist" else "Add to watchlist",
+                                tint = if (isInWatchlist) Gold else Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
 
                     Column(
                         modifier = Modifier
