@@ -226,14 +226,6 @@ fun MovieDetailSkeleton(modifier: Modifier = Modifier) {
                         )
                     )
             )
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(16.dp)
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .shimmer()
-            )
             Column(
                 modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally

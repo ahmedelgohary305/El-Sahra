@@ -341,8 +341,8 @@ fun MediaHeader(
                 .background(
                     Brush.verticalGradient(
                         0.3f to Color.Transparent,
-                        0.7f to Color.Black.copy(alpha = 0.5f),
-                        1f to Color.Black
+                        0.7f to Color.Black.copy(alpha = 0.1f),
+                        1f to Color.Black.copy(0.3f)
                     )
                 )
         )
@@ -789,7 +789,7 @@ fun CastItem(cast: Cast, modifier: Modifier = Modifier) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(150.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(Color.Gray),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -906,7 +906,7 @@ fun EpisodeItem(episode: Episode, onPlayClick: () -> Unit) {
                     modifier = Modifier
                         .size(width = 130.dp, height = 85.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(Color.Gray)
                 ) {
                     if (!episode.stillPath.isNullOrEmpty()) {
                         AsyncImage(

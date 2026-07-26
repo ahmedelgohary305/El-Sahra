@@ -46,6 +46,7 @@ class SearchViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private var searchJob: Job? = null
+    private var latestSearchId = 0
 
     fun loadInitialData() {
         val locale = Locale.getDefault()
@@ -65,30 +66,40 @@ class SearchViewModel @Inject constructor(
     fun onQueryChanged(query: String) {
         _searchQuery.value = query
         searchJob?.cancel()
+        val searchId = ++latestSearchId
         if (query.isBlank()) {
             _searchResults.value = emptyList()
             _isLoading.value = false
             return
         }
-        
+
+        // Show the loading UI during the debounce interval too; otherwise the
+        // empty state flashes before the request starts.
+        _isLoading.value = true
         searchJob = viewModelScope.launch {
             delay(500) // Debounce
-            search(query)
+            search(query, searchId)
         }
     }
 
-    private suspend fun search(query: String) {
+    private suspend fun search(query: String, searchId: Int) {
         val locale = Locale.getDefault()
         val language = if (locale.language == "ar") "ar-EG" else "en-US"
         val region = if (locale.language == "ar") "EG" else if (locale.country.isNotBlank()) locale.country else null
 
-        _isLoading.value = true
         try {
-            _searchResults.value = movieRepository.searchMovies(query, language, region)
+            val results = movieRepository.searchMovies(query, language, region)
+            if (searchId == latestSearchId) {
+                _searchResults.value = results
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         } finally {
-            _isLoading.value = false
+            // A canceled request must not stop the loading indicator for the
+            // newer query that replaced it.
+            if (searchId == latestSearchId) {
+                _isLoading.value = false
+            }
         }
     }
 
