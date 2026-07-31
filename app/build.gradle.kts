@@ -13,7 +13,7 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
-android {
+    android {
     namespace = "com.example.elsahra"
     compileSdk = 37
 
@@ -21,13 +21,24 @@ android {
         applicationId = "com.example.elsahra"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 3
+        versionName = "1.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         val tmdbApiKey = localProps.getProperty("TMDB_API_KEY") ?: ""
         buildConfigField("String", "TMDB_API_KEY", "\"$tmdbApiKey\"")
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
     }
 
     buildFeatures {
@@ -54,6 +65,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)

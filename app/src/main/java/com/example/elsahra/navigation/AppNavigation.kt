@@ -2,14 +2,17 @@ package com.example.elsahra.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
-import com.example.elsahra.R
-import com.example.elsahra.ui.screens.*
+import com.example.elsahra.ui.screens.HomeScreen
+import com.example.elsahra.ui.screens.MovieDetailScreen
+import com.example.elsahra.ui.screens.SearchScreen
+import com.example.elsahra.ui.screens.SeeAllScreen
+import com.example.elsahra.ui.screens.SettingsScreen
+import com.example.elsahra.ui.screens.WatchlistScreen
 
 @Composable
 fun AppNavigation(

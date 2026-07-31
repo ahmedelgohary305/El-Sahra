@@ -1,14 +1,22 @@
 package com.example.elsahra.ui.screens
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -16,24 +24,39 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.graphics.Color
 import androidx.compose.material.icons.filled.SearchOff
-import androidx.compose.material3.*
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.elsahra.R
-import com.example.elsahra.ui.components.MovieItem
+import com.example.elsahra.ui.components.EmptyState
+import com.example.elsahra.ui.components.ErrorState
+import com.example.elsahra.ui.components.CompactErrorState
 import com.example.elsahra.ui.components.MoviesGrid
 import com.example.elsahra.ui.components.MoviesRow
 
@@ -50,6 +73,9 @@ fun SearchScreen(
     val topSearches by viewModel.topSearches.collectAsState()
     val selectedGenre by viewModel.selectedGenre.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val isInitialLoading by viewModel.isInitialLoading.collectAsState()
+    val searchError by viewModel.error.collectAsState()
+    val initialLoadError by viewModel.initialLoadError.collectAsState()
     val recentSearches by viewModel.recentSearches.collectAsState()
 
     val context = LocalContext.current
@@ -147,6 +173,9 @@ fun SearchScreen(
                 SearchInitialState(
                     recentSearches = recentSearches,
                     topSearches = topSearches,
+                    isLoading = isInitialLoading,
+                    error = initialLoadError,
+                    onRetry = { viewModel.loadInitialData() },
                     onRecentClick = { viewModel.onSearchTriggered(it) },
                     onRemoveRecent = { viewModel.removeRecentSearch(it) },
                     onClearAll = { viewModel.clearAllRecentSearches() },
@@ -202,8 +231,19 @@ fun SearchScreen(
                 }
 
                 Box(modifier = Modifier.fillMaxSize()) {
-                    if (searchResults.isEmpty() && !isLoading) {
-                        EmptySearchState(modifier = Modifier.align(Alignment.Center))
+                    if (searchError != null) {
+                        ErrorState(
+                            title = stringResource(searchError!!),
+                            onRetry = { viewModel.onSearchTriggered(query) },
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    } else if (searchResults.isEmpty() && !isLoading) {
+                        EmptyState(
+                            title = stringResource(R.string.sorry_no_movie),
+                            description = stringResource(R.string.try_again),
+                            icon = Icons.Default.SearchOff,
+                            modifier = Modifier.align(Alignment.Center)
+                        )
                     } else {
                         MoviesGrid(
                             movies = searchResults,
@@ -226,6 +266,9 @@ fun SearchScreen(
 fun SearchInitialState(
     recentSearches: List<String>,
     topSearches: List<com.example.elsahra.data.model.Movie>,
+    isLoading: Boolean,
+    error: Int?,
+    onRetry: () -> Unit,
     onRecentClick: (String) -> Unit,
     onRemoveRecent: (String) -> Unit,
     onClearAll: () -> Unit,
@@ -293,51 +336,22 @@ fun SearchInitialState(
         }
 
         item {
-            MoviesRow(
-                title = stringResource(R.string.top_searches),
-                movies = topSearches,
-                onMovieClick = { id, type -> onMovieClick(id, type) },
-                // Keep the row's placeholders visible if the initial request fails
-                // offline and therefore returns no Top Searches.
-                isLoading = topSearches.isEmpty()
-            )
+            if (error != null) {
+                CompactErrorState(
+                    title = stringResource(error),
+                    onRetry = onRetry,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp)
+                )
+            } else {
+                MoviesRow(
+                    title = stringResource(R.string.top_searches),
+                    movies = topSearches,
+                    onMovieClick = { id, type -> onMovieClick(id, type) },
+                    isLoading = isLoading
+                )
+            }
         }
     }
 }
 
-@Composable
-fun EmptySearchState(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxWidth().padding(32.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-            modifier = Modifier.size(120.dp)
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Default.SearchOff, 
-                    contentDescription = null, 
-                    modifier = Modifier.size(60.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(
-            text = stringResource(R.string.sorry_no_movie),
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = stringResource(R.string.try_again),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-            textAlign = TextAlign.Center
-        )
-    }
-}
+

@@ -5,17 +5,31 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Moshi rules
+-keep class com.squareup.moshi.** { *; }
+-keep interface com.squareup.moshi.** { *; }
+-keepattributes Signature,annotation
+-dontwarn com.squareup.moshi.**
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Retrofit rules
+-keepattributes Signature, InnerClasses, EnclosingMethod
+-keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
+-keepattributes RuntimeInvisibleAnnotations, RuntimeInvisibleParameterAnnotations
+-dontwarn retrofit2.**
+-keep class retrofit2.** { *; }
+-keepclasseswithmembers class * {
+    @retrofit2.http.* <methods>;
+}
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Keep Hilt/Dagger classes
+-keep class dagger.hilt.** { *; }
+-keep class com.google.dagger.** { *; }
+-dontwarn dagger.hilt.processor.**
+
+# Keep models (data classes) used by Moshi
+-keep @com.squareup.moshi.JsonClass class * { *; }
+-keep class com.example.elsahra.data.model.** { *; }
+
+# Preserve line numbers for stack traces in release
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile

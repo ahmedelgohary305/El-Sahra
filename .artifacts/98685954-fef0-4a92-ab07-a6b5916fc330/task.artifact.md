@@ -1,0 +1,3 @@
+- [x] Reverting layout constraints in `MovieComponents.kt`.
+- [x] Reverting layout constraints in `Skeletons.kt`.
+- [/] Reverting category spacing in `HomeScreen.kt`.

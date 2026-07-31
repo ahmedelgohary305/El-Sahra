@@ -6,13 +6,15 @@ import com.example.elsahra.data.model.Genre
 import com.example.elsahra.data.model.Movie
 import com.example.elsahra.data.repository.MovieRepository
 import com.example.elsahra.data.repository.SearchHistoryRepository
+import com.example.elsahra.util.ErrorMapper
+import com.example.elsahra.util.LocaleManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.util.Locale
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
 class SearchViewModel @Inject constructor(
@@ -37,6 +39,15 @@ class SearchViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    private val _isInitialLoading = MutableStateFlow(false)
+    val isInitialLoading: StateFlow<Boolean> = _isInitialLoading
+
+    private val _error = MutableStateFlow<Int?>(null)
+    val error: StateFlow<Int?> = _error
+
+    private val _initialLoadError = MutableStateFlow<Int?>(null)
+    val initialLoadError: StateFlow<Int?> = _initialLoadError
+
     val recentSearches: StateFlow<List<String>> = historyRepository.recentSearches
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -49,16 +60,22 @@ class SearchViewModel @Inject constructor(
     private var latestSearchId = 0
 
     fun loadInitialData() {
-        val locale = Locale.getDefault()
-        val language = if (locale.language == "ar") "ar-EG" else "en-US"
+        val language = LocaleManager.tmdbLanguageCode()
 
         viewModelScope.launch {
+            _isInitialLoading.value = true
+            _initialLoadError.value = null
             try {
                 // Fetch genres and trending movies (as "Top Searches")
                 _genres.value = movieRepository.getGenres(language)
                 _topSearches.value = movieRepository.getTrendingMovies(language)
             } catch (e: Exception) {
-                e.printStackTrace()
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    e.printStackTrace()
+                    _initialLoadError.value = ErrorMapper.mapThrowableToStringRes(e)
+                }
+            } finally {
+                _isInitialLoading.value = false
             }
         }
     }
@@ -77,23 +94,26 @@ class SearchViewModel @Inject constructor(
         // empty state flashes before the request starts.
         _isLoading.value = true
         searchJob = viewModelScope.launch {
-            delay(500) // Debounce
+            delay(500.milliseconds) // Debounce
             search(query, searchId)
         }
     }
 
     private suspend fun search(query: String, searchId: Int) {
-        val locale = Locale.getDefault()
-        val language = if (locale.language == "ar") "ar-EG" else "en-US"
-        val region = if (locale.language == "ar") "EG" else if (locale.country.isNotBlank()) locale.country else null
+        val language = LocaleManager.tmdbLanguageCode()
+        val region = LocaleManager.tmdbRegionCode()
 
         try {
             val results = movieRepository.searchMovies(query, language, region)
             if (searchId == latestSearchId) {
                 _searchResults.value = results
+                _error.value = null
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            if (searchId == latestSearchId && e !is kotlinx.coroutines.CancellationException) {
+                e.printStackTrace()
+                _error.value = ErrorMapper.mapThrowableToStringRes(e)
+            }
         } finally {
             // A canceled request must not stop the loading indicator for the
             // newer query that replaced it.
@@ -105,7 +125,14 @@ class SearchViewModel @Inject constructor(
 
     fun onSearchTriggered(query: String) {
         if (query.isBlank()) return
-        onQueryChanged(query)
+        
+        // Only trigger a new search if the query has changed or if there are no results yet.
+        // This prevents the search list from refreshing/flickering when clicking on a movie
+        // or clicking search with the same query.
+        if (query != _searchQuery.value || _searchResults.value.isEmpty()) {
+            onQueryChanged(query)
+        }
+        
         viewModelScope.launch {
             historyRepository.addSearch(query)
         }

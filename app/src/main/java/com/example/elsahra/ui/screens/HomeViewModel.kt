@@ -7,11 +7,12 @@ import androidx.paging.cachedIn
 import androidx.paging.filter
 import com.example.elsahra.data.model.Movie
 import com.example.elsahra.data.repository.MovieRepository
+import com.example.elsahra.util.ErrorMapper
+import com.example.elsahra.util.LocaleManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -26,8 +27,8 @@ class HomeViewModel @Inject constructor(
     private val _selectedMediaType = MutableStateFlow(MediaType.MOVIE)
     val selectedMediaType: StateFlow<MediaType> = _selectedMediaType
 
-    private val _language = MutableStateFlow(getLanguageCode())
-    private val _region = MutableStateFlow(getRegionCode())
+    private val _language = MutableStateFlow(LocaleManager.tmdbLanguageCode())
+    private val _region = MutableStateFlow(LocaleManager.tmdbRegionCode())
 
     private val _trendingMovies = MutableStateFlow<List<Movie>>(emptyList())
     val trendingMovies: StateFlow<List<Movie>> = _trendingMovies
@@ -35,65 +36,78 @@ class HomeViewModel @Inject constructor(
     private val _trendingTvShows = MutableStateFlow<List<Movie>>(emptyList())
     val trendingTvShows: StateFlow<List<Movie>> = _trendingTvShows
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val trendingMoviesPaging: Flow<PagingData<Movie>> = _language.flatMapLatest { lang ->
-        _trendingMovies
-            .map { it.take(3).map { movie -> movie.id } }
-            .distinctUntilChanged()
-            .flatMapLatest { excludedIds ->
-                repository.getTrendingMoviesPaging(lang).map { pagingData ->
-                    pagingData.filter { movie -> movie.id !in excludedIds }
-                }
-            }
-    }.cachedIn(viewModelScope)
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
+    private val _error = MutableStateFlow<Int?>(null)
+    val error: StateFlow<Int?> = _error
+
+    private val _refreshSignal = MutableSharedFlow<Unit>(replay = 0)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val trendingTvShowsPaging: Flow<PagingData<Movie>> = _language.flatMapLatest { lang ->
-        _trendingTvShows
-            .map { it.take(3).map { movie -> movie.id } }
-            .distinctUntilChanged()
-            .flatMapLatest { excludedIds ->
-                repository.getTrendingTvShowsPaging(lang).map { pagingData ->
-                    pagingData.filter { movie -> movie.id !in excludedIds }
+    val trendingMoviesPaging: Flow<PagingData<Movie>> = combine(_language, _refreshSignal.onStart { emit(Unit) }) { lang, _ -> lang }
+        .flatMapLatest { lang ->
+            _trendingMovies
+                .map { it.take(3).map { movie -> movie.id } }
+                .distinctUntilChanged()
+                .flatMapLatest { excludedIds ->
+                    repository.getTrendingMoviesPaging(lang).map { pagingData ->
+                        pagingData.filter { movie -> movie.id !in excludedIds }
+                    }
                 }
-            }
-    }.cachedIn(viewModelScope)
+        }.cachedIn(viewModelScope)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val popularMoviesPaging: Flow<PagingData<Movie>> = combine(_language, _region) { lang, reg ->
+    val trendingTvShowsPaging: Flow<PagingData<Movie>> = combine(_language, _refreshSignal.onStart { emit(Unit) }) { lang, _ -> lang }
+        .flatMapLatest { lang ->
+            _trendingTvShows
+                .map { it.take(3).map { movie -> movie.id } }
+                .distinctUntilChanged()
+                .flatMapLatest { excludedIds ->
+                    repository.getTrendingTvShowsPaging(lang).map { pagingData ->
+                        pagingData.filter { movie -> movie.id !in excludedIds }
+                    }
+                }
+        }.cachedIn(viewModelScope)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val popularMoviesPaging: Flow<PagingData<Movie>> = combine(_language, _region, _refreshSignal.onStart { emit(Unit) }) { lang, reg, _ ->
         lang to reg
     }.flatMapLatest { (lang, reg) ->
         repository.getPopularMoviesPaging(lang, reg)
     }.cachedIn(viewModelScope)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val popularTvShowsPaging: Flow<PagingData<Movie>> = _language.flatMapLatest { lang ->
-        repository.getPopularTvShowsPaging(lang)
-    }.cachedIn(viewModelScope)
+    val popularTvShowsPaging: Flow<PagingData<Movie>> = combine(_language, _refreshSignal.onStart { emit(Unit) }) { lang, _ -> lang }
+        .flatMapLatest { lang ->
+            repository.getPopularTvShowsPaging(lang)
+        }.cachedIn(viewModelScope)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val topRatedMoviesPaging: Flow<PagingData<Movie>> = combine(_language, _region) { lang, reg ->
+    val topRatedMoviesPaging: Flow<PagingData<Movie>> = combine(_language, _region, _refreshSignal.onStart { emit(Unit) }) { lang, reg, _ ->
         lang to reg
     }.flatMapLatest { (lang, reg) ->
         repository.getTopRatedMoviesPaging(lang, reg)
     }.cachedIn(viewModelScope)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val topRatedTvShowsPaging: Flow<PagingData<Movie>> = _language.flatMapLatest { lang ->
-        repository.getTopRatedTvShowsPaging(lang)
-    }.cachedIn(viewModelScope)
+    val topRatedTvShowsPaging: Flow<PagingData<Movie>> = combine(_language, _refreshSignal.onStart { emit(Unit) }) { lang, _ -> lang }
+        .flatMapLatest { lang ->
+            repository.getTopRatedTvShowsPaging(lang)
+        }.cachedIn(viewModelScope)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val nowPlayingMoviesPaging: Flow<PagingData<Movie>> = combine(_language, _region) { lang, reg ->
+    val nowPlayingMoviesPaging: Flow<PagingData<Movie>> = combine(_language, _region, _refreshSignal.onStart { emit(Unit) }) { lang, reg, _ ->
         lang to reg
     }.flatMapLatest { (lang, reg) ->
         repository.getNowPlayingMoviesPaging(lang, reg)
     }.cachedIn(viewModelScope)
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val onTheAirTvShowsPaging: Flow<PagingData<Movie>> = _language.flatMapLatest { lang ->
-        repository.getOnTheAirTvShowsPaging(lang)
-    }.cachedIn(viewModelScope)
+    val onTheAirTvShowsPaging: Flow<PagingData<Movie>> = combine(_language, _refreshSignal.onStart { emit(Unit) }) { lang, _ -> lang }
+        .flatMapLatest { lang ->
+            repository.getOnTheAirTvShowsPaging(lang)
+        }.cachedIn(viewModelScope)
 
     init {
         // Observe language changes to reload non-paging data
@@ -106,6 +120,8 @@ class HomeViewModel @Inject constructor(
 
     private fun refreshTrending(lang: String) {
         viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
             try {
                 // Fetch Movie Trending
                 val movieTrending = repository.getTrendingMovies(lang)
@@ -120,7 +136,7 @@ class HomeViewModel @Inject constructor(
                         try {
                             val details = repository.getMovieDetails(movie.id, lang)
                             movie.copy(genres = details.genres)
-                        } catch (e: Exception) { movie }
+                        } catch (_: Exception) { movie }
                     }
                     _trendingMovies.value = detailedMovies + movieTrending.drop(3)
                 }
@@ -130,13 +146,25 @@ class HomeViewModel @Inject constructor(
                         try {
                             val details = repository.getTvDetails(movie.id, lang)
                             movie.copy(genres = details.genres)
-                        } catch (e: Exception) { movie }
+                        } catch (_: Exception) { movie }
                     }
                     _trendingTvShows.value = detailedTv + tvTrending.drop(3)
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    e.printStackTrace()
+                    _error.value = ErrorMapper.mapThrowableToStringRes(e)
+                }
+            } finally {
+                _isLoading.value = false
             }
+        }
+    }
+
+    fun retry() {
+        refreshTrending(_language.value)
+        viewModelScope.launch {
+            _refreshSignal.emit(Unit)
         }
     }
 
@@ -145,17 +173,7 @@ class HomeViewModel @Inject constructor(
     }
 
     fun loadData() {
-        _language.value = getLanguageCode()
-        _region.value = getRegionCode()
-    }
-
-    private fun getLanguageCode(): String {
-        val locale = Locale.getDefault()
-        return if (locale.language == "ar") "ar-EG" else "en-US"
-    }
-
-    private fun getRegionCode(): String? {
-        val locale = Locale.getDefault()
-        return if (locale.language == "ar") "EG" else if (locale.country.isNotBlank()) locale.country else null
+        _language.value = LocaleManager.tmdbLanguageCode()
+        _region.value = LocaleManager.tmdbRegionCode()
     }
 }

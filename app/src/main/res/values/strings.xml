@@ -32,6 +32,12 @@
     <string name="rating">Rating: %1$s</string>
     <string name="no_overview">No overview available.</string>
     <string name="error_loading">Error loading data</string>
+    <string name="error_description">Something went wrong. Please try again later.</string>
+    <string name="error_network">No internet connection. Please check your network and try again.</string>
+    <string name="error_timeout">The connection timed out. Please try again.</string>
+    <string name="error_server">We\'re having trouble connecting to our server. Please try again later.</string>
+    <string name="error_unknown">An unexpected error occurred. Please try again.</string>
+    <string name="retry">Retry</string>
     <string name="sort_by">Sort By</string>
     <string name="popularity">Popularity</string>
     <string name="release_date">Release Date</string>
@@ -40,7 +46,9 @@
     <string name="watch">Watch</string>
     <string name="episodes">Episodes</string>
     <string name="suggested">Suggested</string>
-    <string name="about">About</string>
+    <string name="about_movie">About Movie</string>
+    <string name="about_tv">About Show</string>
+    <string name="about_app">About app</string>
     <string name="review">Review</string>
     <string name="cast">Cast</string>
     <string name="seasons_count">%1$d Seasons | %2$d Episodes</string>
@@ -66,4 +74,11 @@
     <string name="empty_movie_watchlist">Your movie watchlist is empty</string>
     <string name="empty_tv_watchlist">Your TV show watchlist is empty</string>
     <string name="watchlist_description">Explore movies and TV shows and add them to your watchlist to keep track of what you want to watch.</string>
+    <string name="appearance">Appearance</string>
+    <string name="dark_mode">Dark Mode</string>
+    <string name="contact_me">Contact Me</string>
+    <string name="support">Support</string>
+    <string name="app_version">App Version</string>
+    <string name="version_value">1.0.2</string>
+    <string name="email_subject">El Sahra App Feedback</string>
 </resources>

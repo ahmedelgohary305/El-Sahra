@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
@@ -39,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -56,14 +59,19 @@ import java.util.Locale
 
 import com.example.elsahra.ui.theme.Gold
 import com.example.elsahra.ui.screens.WatchlistViewModel
+import com.example.elsahra.ui.components.ErrorState
+import com.example.elsahra.ui.components.CompactErrorState
+import com.example.elsahra.util.ErrorMapper
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun MovieItem(
+    modifier: Modifier = Modifier,
     movie: Movie,
     onClick: (Int) -> Unit,
-    fallbackMediaType: String = "movie",
-    modifier: Modifier = Modifier
+    fallbackMediaType: String = "movie"
 ) {
+    val isArabic = LocalConfiguration.current.locales[0].language == "ar"
     val watchlistViewModel: WatchlistViewModel = hiltViewModel()
     val movieIds by watchlistViewModel.movieIds.collectAsStateWithLifecycle()
     val tvIds by watchlistViewModel.tvIds.collectAsStateWithLifecycle()
@@ -71,7 +79,9 @@ fun MovieItem(
     val isInWatchlist = if (mediaType == "tv") movie.id in tvIds else movie.id in movieIds
     Column(
         modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
             .clickable { movie.id.let(onClick) }
+            .padding(4.dp)
     ) {
         Card(
             shape = RoundedCornerShape(16.dp),
@@ -126,10 +136,15 @@ fun MovieItem(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 4.dp)
         )
+        if (!isArabic) {
+            Spacer(modifier = Modifier.height(4.dp))
+        }
         
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 4.dp)
+            modifier = Modifier
+                .padding(horizontal = 4.dp)
+                .then(if (isArabic) Modifier.offset(y = (-2).dp) else Modifier)
         ) {
             Icon(
                 imageVector = Icons.Rounded.Star,
@@ -154,14 +169,18 @@ fun MovieItem(
         }
 
         if (!movie.overview.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(4.dp))
+            if (!isArabic) {
+                Spacer(modifier = Modifier.height(4.dp))
+            }
             Text(
                 text = movie.overview,
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp)
+                color = colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .padding(horizontal = 4.dp)
+                    .then(if (isArabic) Modifier.offset(y = (-4).dp) else Modifier)
             )
         }
     }
@@ -190,7 +209,7 @@ fun MoviePagingRow(
                         .width(4.dp)
                         .height(24.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(MaterialTheme.colorScheme.primary)
+                        .background(colorScheme.primary)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
@@ -209,11 +228,23 @@ fun MoviePagingRow(
         // A first request without a connection ends in Error with no items. Keep the
         // placeholder visible in that case so every home section has the same loading
         // treatment as the hero banner instead of rendering an empty row.
-        val showInitialSkeleton = movies.loadState.refresh is LoadState.Loading ||
-            (movies.loadState.refresh is LoadState.Error && movies.itemCount == 0)
+        val showInitialSkeleton = movies.loadState.refresh is LoadState.Loading
 
         if (showInitialSkeleton) {
             MovieRowSkeleton(showTitle = false)
+        } else if (movies.loadState.refresh is LoadState.Error) {
+            val error = (movies.loadState.refresh as LoadState.Error).error
+            val message = ErrorMapper.mapThrowableToMessage(LocalContext.current, error)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                CompactErrorState(
+                    title = message,
+                    onRetry = { movies.retry() }
+                )
+            }
         } else {
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
@@ -230,6 +261,8 @@ fun MoviePagingRow(
                             fallbackMediaType = fallbackMediaType,
                             modifier = Modifier.width(140.dp)
                         )
+                    } else {
+                        MovieItemSkeleton(modifier = Modifier.width(140.dp))
                     }
                 }
 
@@ -241,10 +274,12 @@ fun MoviePagingRow(
                     }
                     is LoadState.Error -> {
                         item {
-                            Text(
-                                text = stringResource(R.string.error_loading),
-                                modifier = Modifier.padding(16.dp),
-                                color = MaterialTheme.colorScheme.error
+                            val error = (movies.loadState.append as LoadState.Error).error
+                            val message = ErrorMapper.mapThrowableToMessage(LocalContext.current, error)
+                            CompactErrorState(
+                                title = message,
+                                onRetry = { movies.retry() },
+                                modifier = Modifier.width(140.dp)
                             )
                         }
                     }
@@ -257,12 +292,12 @@ fun MoviePagingRow(
 
 @Composable
 fun MoviesRow(
+    modifier: Modifier = Modifier,
     title: String? = null,
     movies: List<Movie>,
     onMovieClick: (Int, String?) -> Unit,
     onSeeAllClick: (() -> Unit)? = null,
     fallbackMediaType: String = "movie",
-    modifier: Modifier = Modifier,
     isLoading: Boolean = false
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -281,7 +316,7 @@ fun MoviesRow(
                                 .width(4.dp)
                                 .height(24.dp)
                                 .clip(RoundedCornerShape(2.dp))
-                                .background(MaterialTheme.colorScheme.primary)
+                                .background(colorScheme.primary)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -361,11 +396,19 @@ fun MoviesPagingGrid(
     columns: GridCells = GridCells.Fixed(2),
     fallbackMediaType: String = "movie"
 ) {
-    val showInitialSkeleton = movies.loadState.refresh is LoadState.Loading ||
-        (movies.loadState.refresh is LoadState.Error && movies.itemCount == 0)
+    val showInitialSkeleton = movies.loadState.refresh is LoadState.Loading
 
     if (showInitialSkeleton) {
         MoviesGridSkeleton(modifier = modifier, columns = columns)
+    } else if (movies.loadState.refresh is LoadState.Error) {
+        val error = (movies.loadState.refresh as LoadState.Error).error
+        val message = ErrorMapper.mapThrowableToMessage(LocalContext.current, error)
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            ErrorState(
+                title = message,
+                onRetry = { movies.retry() }
+            )
+        }
     } else {
         LazyVerticalGrid(
             columns = columns,
@@ -386,10 +429,23 @@ fun MoviesPagingGrid(
                 }
             }
 
-            if (movies.loadState.append is LoadState.Loading) {
-                items(2) {
-                    MovieItemSkeleton(modifier = Modifier.fillMaxWidth())
+            when (movies.loadState.append) {
+                is LoadState.Loading -> {
+                    items(2) {
+                        MovieItemSkeleton(modifier = Modifier.fillMaxWidth())
+                    }
                 }
+                is LoadState.Error -> {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
+                        val error = (movies.loadState.append as LoadState.Error).error
+                        val message = ErrorMapper.mapThrowableToMessage(LocalContext.current, error)
+                        CompactErrorState(
+                            title = message,
+                            onRetry = { movies.retry() }
+                        )
+                    }
+                }
+                else -> {}
             }
         }
     }

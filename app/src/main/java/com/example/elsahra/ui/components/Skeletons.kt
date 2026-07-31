@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -371,36 +372,6 @@ private fun DetailCrewCardSkeleton(modifier: Modifier = Modifier) {
             )
             Spacer(modifier = Modifier.height(10.dp))
             DetailTextLineSkeleton(0.9f)
-        }
-    }
-}
-
-@Composable
-private fun DetailCastCardSkeleton() {
-    Card(modifier = Modifier.width(130.dp).height(214.dp), shape = RoundedCornerShape(12.dp)) {
-        Column {
-            Box(modifier = Modifier.fillMaxWidth().height(150.dp).shimmer())
-            Column(modifier = Modifier.padding(8.dp)) {
-                DetailTextLineSkeleton(0.8f)
-                Spacer(modifier = Modifier.height(6.dp))
-                DetailTextLineSkeleton(0.62f)
-            }
-        }
-    }
-}
-
-@Composable
-private fun DetailInformationRowSkeleton() {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        repeat(2) {
-            Column(modifier = Modifier.weight(1f)) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(0.58f).height(12.dp)
-                        .clip(RoundedCornerShape(4.dp)).shimmer()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                DetailTextLineSkeleton(0.86f)
-            }
         }
     }
 }

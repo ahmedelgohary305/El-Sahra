@@ -7,6 +7,7 @@ import androidx.paging.cachedIn
 import com.example.elsahra.data.model.Genre
 import com.example.elsahra.data.model.Movie
 import com.example.elsahra.data.repository.MovieRepository
+import com.example.elsahra.util.LocaleManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -20,7 +21,6 @@ class SeeAllViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _category = MutableStateFlow("")
-    val category: StateFlow<String> = _category.asStateFlow()
 
     private val _mediaType = MutableStateFlow("movie")
     val mediaType: StateFlow<String> = _mediaType.asStateFlow()
@@ -41,7 +41,7 @@ class SeeAllViewModel @Inject constructor(
         val language = getLanguageCode()
         val region = getRegionCode()
         
-        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", Locale.US)
         val calendar = java.util.Calendar.getInstance()
         val today = sdf.format(calendar.time)
         
@@ -178,12 +178,10 @@ class SeeAllViewModel @Inject constructor(
     }
 
     private fun getLanguageCode(): String {
-        val locale = Locale.getDefault()
-        return if (locale.language == "ar") "ar-EG" else "en-US"
+        return LocaleManager.tmdbLanguageCode()
     }
 
     private fun getRegionCode(): String? {
-        val locale = Locale.getDefault()
-        return if (locale.language == "ar") "EG" else if (locale.country.isNotBlank()) locale.country else null
+        return LocaleManager.tmdbRegionCode()
     }
 }

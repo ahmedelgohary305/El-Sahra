@@ -32,6 +32,12 @@
     <string name="rating">التقييم: %1$s</string>
     <string name="no_overview">لا يوجد ملخص متاح.</string>
     <string name="error_loading">خطأ في تحميل البيانات</string>
+    <string name="error_description">حدث خطأ ما. يرجى المحاولة مرة أخرى في وقت لاحق.</string>
+    <string name="error_network">لا يوجد اتصال بالإنترنت. يرجى التحقق من الشبكة والمحاولة مرة أخرى.</string>
+    <string name="error_timeout">انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.</string>
+    <string name="error_server">نواجه مشكلة في الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.</string>
+    <string name="error_unknown">حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.</string>
+    <string name="retry">إعادة المحاولة</string>
     <string name="sort_by">ترتيب حسب</string>
     <string name="popularity">الشعبية</string>
     <string name="release_date">تاريخ الإصدار</string>
@@ -40,7 +46,9 @@
     <string name="watch">مشاهدة</string>
     <string name="episodes">الحلقات</string>
     <string name="suggested">مقترحات</string>
-    <string name="about">عن الفيلم</string>
+    <string name="about_movie">عن الفيلم</string>
+    <string name="about_tv">عن المسلسل</string>
+    <string name="about_app">عنا</string>
     <string name="review">المراجعات</string>
     <string name="cast">طاقم العمل</string>
     <string name="seasons_count">%1$d مواسم | %2$d حلقات</string>
@@ -66,4 +74,11 @@
     <string name="empty_movie_watchlist">قائمة الأفلام فارغة</string>
     <string name="empty_tv_watchlist">قائمة المسلسلات فارغة</string>
     <string name="watchlist_description">استكشف الأفلام والمسلسلات وأضفها إلى قائمة المشاهدة الخاصة بك لتتبع ما تريد مشاهدته.</string>
+    <string name="appearance">المظهر</string>
+    <string name="dark_mode">الوضع الداكن</string>
+    <string name="contact_me">اتصل بي</string>
+    <string name="support">الدعم</string>
+    <string name="app_version">إصدار التطبيق</string>
+    <string name="version_value">1.0.2</string>
+    <string name="email_subject">تعليقات تطبيق السهرة</string>
 </resources>

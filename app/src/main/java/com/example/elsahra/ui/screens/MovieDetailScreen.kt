@@ -13,16 +13,15 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -47,7 +46,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -73,14 +71,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -88,11 +88,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.elsahra.R
-import com.example.elsahra.ui.theme.Gold
 import com.example.elsahra.data.model.Cast
 import com.example.elsahra.data.model.Crew
 import com.example.elsahra.data.model.Episode
@@ -101,9 +100,11 @@ import com.example.elsahra.data.model.MovieDetails
 import com.example.elsahra.data.model.Review
 import com.example.elsahra.data.model.Season
 import com.example.elsahra.data.model.TvShowDetails
-import com.example.elsahra.ui.components.MoviesGrid
+import com.example.elsahra.ui.components.ErrorState
 import com.example.elsahra.ui.components.MovieDetailSkeleton
+import com.example.elsahra.ui.components.MoviesGrid
 import com.example.elsahra.ui.components.VideoWebViewPlayer
+import com.example.elsahra.ui.theme.Gold
 import com.example.elsahra.util.FormatUtils
 import java.util.Locale
 
@@ -118,8 +119,8 @@ fun MovieDetailScreen(
     watchlistViewModel: WatchlistViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
-    val locale = Locale.getDefault()
-    LaunchedEffect(movieId, mediaType, locale) {
+    val isArabic = LocalConfiguration.current.locales[0].language == "ar"
+    LaunchedEffect(movieId, mediaType) {
         viewModel.loadDetails(movieId, mediaType)
     }
 
@@ -142,7 +143,7 @@ fun MovieDetailScreen(
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val episodesLabel = stringResource(R.string.episodes)
     val suggestedLabel = stringResource(R.string.suggested)
-    val aboutLabel = stringResource(R.string.about)
+    val aboutLabel = if (tvShow != null) stringResource(R.string.about_tv) else stringResource(R.string.about_movie)
     val reviewLabel = stringResource(R.string.review)
 
     val tabs = remember(tvShow) {
@@ -161,15 +162,11 @@ fun MovieDetailScreen(
                     MovieDetailSkeleton()
                 }
                 error != null -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center).padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(text = error ?: stringResource(R.string.error_loading))
-                        Button(onClick = { viewModel.loadDetails(movieId, mediaType) }) {
-                            Text(stringResource(R.string.try_again))
-                        }
-                    }
+                    ErrorState(
+                        title = stringResource(error!!),
+                        onRetry = { viewModel.loadDetails(movieId, mediaType) },
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
                 movie != null || tvShow != null -> {
                     val currentMovie = movie
@@ -226,7 +223,8 @@ fun MovieDetailScreen(
                                     val intent = Intent(Intent.ACTION_VIEW, "https://www.youtube.com/watch?v=$key".toUri())
                                     context.startActivity(intent)
                                 }
-                            }
+                            },
+                            isArabic = isArabic
                         )
 
                         TabRow(
@@ -350,7 +348,8 @@ fun MediaHeader(
     isInWatchlist: Boolean,
     onWatchlistClick: () -> Unit,
     onPlayClick: () -> Unit,
-    onTrailerClick: () -> Unit
+    onTrailerClick: () -> Unit,
+    isArabic: Boolean
 ) {
     Box(modifier = Modifier.fillMaxWidth().height(350.dp)) {
         AsyncImage(
@@ -427,14 +426,20 @@ fun MediaHeader(
                         blurRadius = 4f
                     )
                 ),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.offset(
+                    y = if (isArabic) 4.dp else 0.dp
+                )
             )
             
             // Enhanced Rating Badge
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .padding(top = 4.dp, bottom = 2.dp)
+                    .padding(
+                        top = if (!isArabic) 4.dp else 0.dp,
+                        bottom = if (!isArabic) 2.dp else 0.dp
+                    )
                     .clip(CircleShape)
                     .background(Color.Black.copy(alpha = 0.2f))
                     .padding(horizontal = 10.dp, vertical = 4.dp)
@@ -482,7 +487,7 @@ fun MediaHeader(
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
@@ -601,7 +606,7 @@ fun AboutSection(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(16f / 9f)
+                    .aspectRatio(1.4f)
                     .padding(bottom = 16.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.Black)

@@ -14,8 +14,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
@@ -33,6 +33,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -40,18 +44,13 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRowDefaults
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -66,16 +65,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.compose.collectAsLazyPagingItems
 import coil.compose.AsyncImage
 import com.example.elsahra.R
-import com.example.elsahra.ui.theme.Gold
-import com.example.elsahra.ui.components.MoviePagingRow
 import com.example.elsahra.ui.components.HeroBannerSkeleton
-import com.example.elsahra.ui.screens.WatchlistViewModel
+import com.example.elsahra.ui.components.MoviePagingRow
+import com.example.elsahra.ui.components.ErrorState
+import com.example.elsahra.ui.theme.Gold
 import com.example.elsahra.util.FormatUtils
+import com.example.elsahra.util.LocaleManager
+import kotlinx.coroutines.launch
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class, ExperimentalMaterial3Api::class)
@@ -89,6 +90,7 @@ fun HomeScreen(
     viewModel: HomeViewModel // Provided via hiltViewModel() in AppNavigation
 ) {
     val selectedMediaType by viewModel.selectedMediaType.collectAsState()
+    val networkError by viewModel.error.collectAsState()
     val pagerState = rememberPagerState(pageCount = { 2 })
     val coroutineScope = rememberCoroutineScope()
 
@@ -96,8 +98,10 @@ fun HomeScreen(
     val activity = context as? androidx.activity.ComponentActivity
     val windowSizeClass = activity?.let { calculateWindowSizeClass(it) }
 
-    val locale = Locale.getDefault()
-    androidx.compose.runtime.LaunchedEffect(locale) {
+    // AppCompat's per-app locale survives orientation changes on older Android
+    // versions, whereas Locale.getDefault() may revert to the device locale.
+    val appLanguage = LocaleManager.tmdbLanguageCode()
+    androidx.compose.runtime.LaunchedEffect(appLanguage) {
         viewModel.loadData()
     }
 
@@ -183,15 +187,24 @@ fun HomeScreen(
                 )
             }
 
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxSize(),
-                userScrollEnabled = true,
-                beyondViewportPageCount = 0 // Key for "load when I go to it"
-            ) { page ->
-                when (page) {
-                    0 -> MovieTab(viewModel, onMovieClick, onSeeAllClick, windowSizeClass?.widthSizeClass ?: WindowWidthSizeClass.Compact)
-                    1 -> TvTab(viewModel, onMovieClick, onSeeAllClick, windowSizeClass?.widthSizeClass ?: WindowWidthSizeClass.Compact)
+            if (networkError != null) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    ErrorState(
+                        title = stringResource(networkError!!),
+                        onRetry = { viewModel.retry() }
+                    )
+                }
+            } else {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    userScrollEnabled = true,
+                    beyondViewportPageCount = 0 // Key for "load when I go to it"
+                ) { page ->
+                    when (page) {
+                        0 -> MovieTab(viewModel, onMovieClick, onSeeAllClick, windowSizeClass?.widthSizeClass ?: WindowWidthSizeClass.Compact)
+                        1 -> TvTab(viewModel, onMovieClick, onSeeAllClick, windowSizeClass?.widthSizeClass ?: WindowWidthSizeClass.Compact)
+                    }
                 }
             }
         }

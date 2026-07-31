@@ -9,12 +9,13 @@ import com.example.elsahra.data.model.MovieDetails
 import com.example.elsahra.data.model.Review
 import com.example.elsahra.data.model.TvShowDetails
 import com.example.elsahra.data.repository.MovieRepository
+import com.example.elsahra.util.ErrorMapper
+import com.example.elsahra.util.LocaleManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -60,17 +61,22 @@ class DetailsViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error
+    private val _error = MutableStateFlow<Int?>(null)
+    val error: StateFlow<Int?> = _error
 
     fun loadDetails(movieId: Int, mediaType: String? = "movie") {
-        val locale = Locale.getDefault()
-        val language = if (locale.language == "ar") "ar-EG" else "en-US"
+        val language = LocaleManager.tmdbLanguageCode()
+
+        // If already loaded or loading the same movie/tv show, don't restart everything
+        if (loadJob?.isActive == true && (_movie.value?.id == movieId || _tvShow.value?.id == movieId)) return
+        if (_movie.value?.id == movieId || _tvShow.value?.id == movieId) return
 
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
+            
+            // Only clear data if it's a DIFFERENT movie/tv show
             _movie.value = null
             _tvShow.value = null
             _cast.value = emptyList()
@@ -79,9 +85,14 @@ class DetailsViewModel @Inject constructor(
             _reviews.value = emptyList()
             _episodes.value = emptyList()
             _trailerKey.value = null
-            _activeTmdbId.value = null
-            _currentSeason.value = null
-            _currentEpisode.value = null
+            
+            // Keep the active stream if it's the same ID (unlikely to happen in normal navigation, 
+            // but good for stability during config changes if recreation isn't fully blocked)
+            if (_activeTmdbId.value != movieId) {
+                _activeTmdbId.value = null
+                _currentSeason.value = null
+                _currentEpisode.value = null
+            }
 
             try {
                 if (mediaType == "tv") {
@@ -121,7 +132,7 @@ class DetailsViewModel @Inject constructor(
             } catch (e: Exception) {
                 if (e !is kotlinx.coroutines.CancellationException) {
                     e.printStackTrace()
-                    _error.value = e.message ?: "Unknown Error"
+                    _error.value = ErrorMapper.mapThrowableToStringRes(e)
                 }
             } finally {
                 _isLoading.value = false
@@ -130,13 +141,15 @@ class DetailsViewModel @Inject constructor(
     }
 
     fun loadEpisodes(tvId: Int, seasonNumber: Int) {
-        val locale = Locale.getDefault()
-        val language = if (locale.language == "ar") "ar-EG" else "en-US"
+        val language = LocaleManager.tmdbLanguageCode()
         viewModelScope.launch {
             try {
                 _episodes.value = repository.getTvSeasonDetails(tvId, seasonNumber, language)
             } catch (e: Exception) {
-                e.printStackTrace()
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    e.printStackTrace()
+                    _error.value = ErrorMapper.mapThrowableToStringRes(e)
+                }
             }
         }
     }
@@ -151,9 +164,5 @@ class DetailsViewModel @Inject constructor(
         _currentSeason.value = season
         _currentEpisode.value = episode
         _activeTmdbId.value = tmdbId
-    }
-
-    fun clearStream() {
-        _activeTmdbId.value = null
     }
 }

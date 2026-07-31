@@ -137,7 +137,6 @@ private fun VidSrcWebView(
 private class WebViewFullscreenController(private val activity: Activity) {
     private var fullscreenView: View? = null
     private var fullscreenCallback: WebChromeClient.CustomViewCallback? = null
-    private var previousOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
 
     fun show(view: View, callback: WebChromeClient.CustomViewCallback) {
         if (fullscreenView != null) {
@@ -152,7 +151,6 @@ private class WebViewFullscreenController(private val activity: Activity) {
 
         fullscreenView = view
         fullscreenCallback = callback
-        previousOrientation = activity.requestedOrientation
         root.addView(
             view,
             ViewGroup.LayoutParams(
@@ -176,7 +174,10 @@ private class WebViewFullscreenController(private val activity: Activity) {
         val view = fullscreenView ?: return
         (view.parent as? ViewGroup)?.removeView(view)
         fullscreenView = null
-        activity.requestedOrientation = previousOrientation
+        
+        // Return to portrait mode explicitly as requested
+        activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        
         WindowCompat.setDecorFitsSystemWindows(activity.window, true)
         WindowCompat.getInsetsController(activity.window, activity.window.decorView)
             .show(WindowInsetsCompat.Type.systemBars())
@@ -205,6 +206,7 @@ private fun WebView.configureForVidSrc() {
         builtInZoomControls = false
         displayZoomControls = false
     }
+    
     isVerticalScrollBarEnabled = false
     isHorizontalScrollBarEnabled = false
     overScrollMode = View.OVER_SCROLL_NEVER
