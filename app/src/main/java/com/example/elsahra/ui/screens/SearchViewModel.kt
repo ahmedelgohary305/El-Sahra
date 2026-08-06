@@ -108,6 +108,13 @@ class SearchViewModel @Inject constructor(
             if (searchId == latestSearchId) {
                 _searchResults.value = results
                 _error.value = null
+                
+                // Automatically add to history if we have results and it's a meaningful query.
+                // This ensures the search is saved even if the user doesn't click a specific result
+                // or press the search button on the keyboard.
+                if (results.isNotEmpty() && query.trim().length >= 2) {
+                    historyRepository.addSearch(query.trim())
+                }
             }
         } catch (e: Exception) {
             if (searchId == latestSearchId && e !is kotlinx.coroutines.CancellationException) {
