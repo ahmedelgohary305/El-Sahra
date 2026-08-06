@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Resources/app_icon.png" width="120" alt="El Sahra App Icon">
+  <img src="Resources/App_Icon.png" width="120" alt="El Sahra App Icon">
 </p>
 
 <h1 align="center">🎬 El Sahra</h1>
