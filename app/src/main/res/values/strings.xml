@@ -79,6 +79,6 @@
     <string name="contact_me">Contact Me</string>
     <string name="support">Support</string>
     <string name="app_version">App Version</string>
-    <string name="version_value">1.0.2</string>
+    <string name="version_value">1.0.3</string>
     <string name="email_subject">El Sahra App Feedback</string>
 </resources>

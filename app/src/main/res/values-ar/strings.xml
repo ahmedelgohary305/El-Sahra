@@ -79,6 +79,6 @@
     <string name="contact_me">اتصل بي</string>
     <string name="support">الدعم</string>
     <string name="app_version">إصدار التطبيق</string>
-    <string name="version_value">1.0.2</string>
+    <string name="version_value">1.0.3</string>
     <string name="email_subject">تعليقات تطبيق السهرة</string>
 </resources>

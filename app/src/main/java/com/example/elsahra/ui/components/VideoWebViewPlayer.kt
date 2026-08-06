@@ -27,10 +27,10 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import java.io.ByteArrayInputStream
 
-private const val VIDSRC_HOST = "vidsrc.sbs"
+private const val VIDAPI_EMBED_HOST = "vaplayer.ru"
 
 /**
- * Inline VidSrc SBS player for TMDB movies and TV episodes.
+ * Inline VidApi player for TMDB movies and TV episodes.
  *
  * Its own fullscreen control uses WebView's HTML5 fullscreen callback, so the
  * compact player stays in the detail screen and fullscreen is only entered on
@@ -54,31 +54,33 @@ fun VideoWebViewPlayer(
     }
 
     val embedUrl = remember(tmdbId, mediaType, season, episode, malId) {
-        buildVidSrcUrl(tmdbId, mediaType, season, episode)
+        buildVidApiUrl(tmdbId, mediaType, season, episode)
     }
 
-    VidSrcWebView(
+    VidApiWebView(
         url = embedUrl,
         fullscreenController = fullscreenController,
         modifier = modifier
     )
 }
 
-private fun buildVidSrcUrl(
+private fun buildVidApiUrl(
     id: Int,
     mediaType: String,
     season: Int?,
     episode: Int?
 ): String {
     val basePath = when (mediaType.lowercase()) {
-        "tv", "anime" -> "https://$VIDSRC_HOST/embed/tv/$id/${season ?: 1}/${episode ?: 1}"
-        else -> "https://$VIDSRC_HOST/embed/movie/$id"
+        "tv", "anime" -> "https://$VIDAPI_EMBED_HOST/embed/tv/$id/${season ?: 1}/${episode ?: 1}"
+        else -> "https://$VIDAPI_EMBED_HOST/embed/movie/$id"
     }
-    return "$basePath?autoplay=1&controls=1&sub=en&color=e50914"
+    // primaryColor = Indigo (#6366F1) -> %236366F1
+    // Added overlay=0 and showTitle=0 to fix stuck overlay issues on older Android versions (like Android 9)
+    return "$basePath?autoplay=1&primaryColor=%236366F1&lang=ar&overlay=0&showTitle=0"
 }
 
 @Composable
-private fun VidSrcWebView(
+private fun VidApiWebView(
     url: String,
     fullscreenController: WebViewFullscreenController?,
     modifier: Modifier = Modifier
@@ -91,8 +93,8 @@ private fun VidSrcWebView(
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
                 setBackgroundColor(AndroidColor.BLACK)
-                configureForVidSrc()
-                webViewClient = vidSrcWebViewClient()
+                configureForVidApi()
+                webViewClient = vidApiWebViewClient()
                 webChromeClient = object : WebChromeClient() {
                     override fun onCreateWindow(
                         view: WebView,
@@ -191,7 +193,7 @@ private class WebViewFullscreenController(private val activity: Activity) {
     }
 }
 
-private fun WebView.configureForVidSrc() {
+private fun WebView.configureForVidApi() {
     settings.apply {
         javaScriptEnabled = true
         domStorageEnabled = true
@@ -213,7 +215,7 @@ private fun WebView.configureForVidSrc() {
     CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
 }
 
-private fun vidSrcWebViewClient() = object : WebViewClient() {
+private fun vidApiWebViewClient() = object : WebViewClient() {
     private val adBlockList = listOf(
         "doubleclick.net", "googlesyndication.com", "googleadservices.com",
         "google-analytics.com", "googletagmanager.com", "adnxs.com",
@@ -228,15 +230,15 @@ private fun vidSrcWebViewClient() = object : WebViewClient() {
     )
 
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-        // VidSrc loads the actual video player in a third-party iframe. Let
+        // VidApi loads the actual video player in a third-party iframe. Let
         // that frame navigate normally; only block top-level redirects.
         if (!request.isForMainFrame) return false
 
         val uri = request.url
         val host = uri.host ?: return true
         val isAllowed = uri.scheme.equals("https", ignoreCase = true) &&
-            (host.equals(VIDSRC_HOST, ignoreCase = true) ||
-                host.endsWith(".$VIDSRC_HOST", ignoreCase = true))
+            (host.equals(VIDAPI_EMBED_HOST, ignoreCase = true) ||
+                host.endsWith(".$VIDAPI_EMBED_HOST", ignoreCase = true))
         if (!isAllowed) {
             Log.d("VideoWebViewPlayer", "Blocked navigation to: $uri")
             return true
