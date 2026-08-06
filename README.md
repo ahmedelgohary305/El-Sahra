@@ -1,7 +1,7 @@
 # 🎬 El Sahra – Ultimate Movie & TV Discovery
 
 <p align="center">
-  <img src="assets/banner.png" alt="El Sahra Banner" width="100%">
+  <img src="Resources/App Icon.xml" alt="El Sahra Banner" width="100%">
 </p>
 
 <p align="center">
