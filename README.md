@@ -179,9 +179,17 @@ app/
 
 # 📸 Screenshots
 
-| Home | Details | Search |
-|------|---------|---------|
-| Coming Soon | Coming Soon | Coming Soon |
+| Home | Search |
+|------|--------|
+| <img src="Resources/Home.png" width="250"/> | <img src="Resources/Search.png" width="250"/> |
+
+| Search Results | Watchlist |
+|----------------|-----------|
+| <img src="Resources/Search%20Result.png" width="250"/> | <img src="Resources/Watchlist.png" width="250"/> |
+
+| Settings |
+|----------|
+| <img src="Resources/Settings.png" width="250"/> |
 
 ---
 
