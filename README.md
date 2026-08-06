@@ -1,7 +1,11 @@
-# 🎬 El Sahra – Ultimate Movie & TV Discovery
+<p align="center">
+  <img src="Resources/app_icon.png" width="120" alt="El Sahra App Icon">
+</p>
+
+<h1 align="center">🎬 El Sahra</h1>
 
 <p align="center">
-  <img src="Resources/App Icon.xml" alt="El Sahra Banner" width="100%">
+Ultimate Movie & TV Discovery App built with Jetpack Compose
 </p>
 
 <p align="center">
